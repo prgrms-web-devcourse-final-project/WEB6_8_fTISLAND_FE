@@ -1,2 +1,3 @@
-# WEB6_8_fTISLAND_FE
-프로그래머스 백엔드 데브코스 6기 8회차 9팀 최종 프로젝트 FE입니다.
+실행방법
+1. pnpm install
+2. pnpm dev
