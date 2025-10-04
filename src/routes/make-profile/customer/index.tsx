@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -5,12 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { createFileRoute } from '@tanstack/react-router';
 import { Camera } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import AddressManage from '@/components/address/AddressManage';
 
 export const Route = createFileRoute('/make-profile/customer/')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const [openAddress, setOpenAddress] = React.useState(false);
+  const [address, setAddress] = React.useState<{ base?: string; detail?: string }>({});
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc] shadow-[0_32px_80px_-40px_rgba(26,86,75,0.55)]'>
       <header className='relative px-4 pb-6 pt-9 text-white sm:px-6 sm:pt-10'>
@@ -31,7 +36,7 @@ function RouteComponent() {
         </p>
       </header>
 
-      <main className='flex-1 space-y-4 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-5 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>
+      <main className='flex-1 space-y-4 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-5 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>
         <Card className='border-none bg-white shadow-lg shadow-[#0f172a]/5'>
           <CardHeader className='space-y-2.5 pb-2.5 sm:space-y-3 sm:pb-2'>
             <CardTitle className='text-[15px] font-semibold text-[#1b1b1b] sm:text-lg'>기본 정보</CardTitle>
@@ -86,13 +91,29 @@ function RouteComponent() {
 
               <div className='space-y-2'>
                 <Label htmlFor='address'>기본 배송지</Label>
+                <div className='flex items-center gap-2'>
+                  <Input
+                    id='address'
+                    readOnly
+                    value={address.base ?? ''}
+                    placeholder='예) 서울시 성북구 돌곶이로 27'
+                    className='h-10 flex-1 rounded-xl border-[#dbe4ec] bg-white text-[13px] placeholder:text-[#94a3b8] sm:h-11 sm:text-sm'
+                  />
+                  <Button
+                    variant='outline'
+                    className='h-10 rounded-xl border-[#dbe4ec] px-3 text-[12px] font-semibold text-[#2ac1bc] hover:border-[#2ac1bc] hover:bg-[#2ac1bc]/10 sm:h-11 sm:px-4 sm:text-xs'
+                    onClick={() => setOpenAddress(true)}>
+                    주소 검색
+                  </Button>
+                </div>
                 <Input
-                  id='address'
-                  placeholder='예) 서울시 성북구 돌곶이로 27 101호'
+                  placeholder='상세 주소를 입력해 주세요 (예: 101동 1203호)'
+                  value={address.detail ?? ''}
+                  onChange={(e) => setAddress((p) => ({ ...p, detail: e.target.value }))}
                   className='h-10 rounded-xl border-[#dbe4ec] bg-white text-[13px] placeholder:text-[#94a3b8] sm:h-11 sm:text-sm'
                 />
                 <p className='text-[12px] text-[#6b7785] sm:text-xs'>
-                  주로 받는 주소를 입력해 두면 주문이 훨씬 빨라요.
+                  주로 받는 주소를 등록해 두면 주문이 훨씬 빨라요.
                 </p>
               </div>
             </section>
@@ -131,6 +152,20 @@ function RouteComponent() {
           프로필은 설정에서 언제든 수정할 수 있어요.
         </div>
       </main>
+
+      <Dialog open={openAddress} onOpenChange={setOpenAddress}>
+        <DialogContent className='mx-auto w-[90%] max-w-[28rem] max-h-[85vh] overflow-hidden rounded-3xl border-0 p-0 shadow-2xl'>
+          <AddressManage
+            defaultOpen
+            asDialog
+            role='customer'
+            onSave={(v) => {
+              setAddress({ base: v.selectedAddress?.address, detail: v.unitNumber ?? '' });
+            }}
+            onClose={() => setOpenAddress(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       <footer className='border-t border-white/20 bg-[#2ac1bc] px-6 py-5 text-center text-[11px] font-semibold text-white/80'>
         오늘도 동네 부탁, 뭐든배달과 함께해요!

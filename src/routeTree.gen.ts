@@ -27,7 +27,16 @@ import { Route as dashboardRiderLayoutRouteImport } from './routes/(dashboard)/r
 import { Route as dashboardCustomerLayoutRouteImport } from './routes/(dashboard)/customer/_layout'
 import { Route as dashboardSellerMypageIndexRouteImport } from './routes/(dashboard)/seller/mypage/index'
 import { Route as dashboardSellerManageIndexRouteImport } from './routes/(dashboard)/seller/manage/index'
+import { Route as dashboardCustomerSearchIndexRouteImport } from './routes/(dashboard)/customer/search/index'
+import { Route as dashboardCustomerOrdersIndexRouteImport } from './routes/(dashboard)/customer/orders/index'
+import { Route as dashboardCustomerMypageIndexRouteImport } from './routes/(dashboard)/customer/mypage/index'
+import { Route as dashboardCustomerFavoritesIndexRouteImport } from './routes/(dashboard)/customer/favorites/index'
+import { Route as dashboardCustomerCartIndexRouteImport } from './routes/(dashboard)/customer/cart/index'
+import { Route as dashboardCustomerStoreStoreIdIndexRouteImport } from './routes/(dashboard)/customer/store/$storeId/index'
+import { Route as dashboardCustomerOrdersOrderIdIndexRouteImport } from './routes/(dashboard)/customer/orders/$orderId/index'
+import { Route as dashboardCustomerCategoryCategoryIndexRouteImport } from './routes/(dashboard)/customer/category/$category/index'
 import { Route as dashboardSellerManageSettlementIdDetailRouteImport } from './routes/(dashboard)/seller/manage/$settlementId/detail'
+import { Route as dashboardCustomerStoreStoreIdProductProductIdIndexRouteImport } from './routes/(dashboard)/customer/store/$storeId/product/$productId/index'
 
 const dashboardSellerRouteImport = createFileRoute('/(dashboard)/seller')()
 const dashboardRiderRouteImport = createFileRoute('/(dashboard)/rider')()
@@ -128,11 +137,65 @@ const dashboardSellerManageIndexRoute =
     path: '/manage/',
     getParentRoute: () => dashboardSellerRoute,
   } as any)
+const dashboardCustomerSearchIndexRoute =
+  dashboardCustomerSearchIndexRouteImport.update({
+    id: '/search/',
+    path: '/search/',
+    getParentRoute: () => dashboardCustomerRoute,
+  } as any)
+const dashboardCustomerOrdersIndexRoute =
+  dashboardCustomerOrdersIndexRouteImport.update({
+    id: '/orders/',
+    path: '/orders/',
+    getParentRoute: () => dashboardCustomerRoute,
+  } as any)
+const dashboardCustomerMypageIndexRoute =
+  dashboardCustomerMypageIndexRouteImport.update({
+    id: '/mypage/',
+    path: '/mypage/',
+    getParentRoute: () => dashboardCustomerRoute,
+  } as any)
+const dashboardCustomerFavoritesIndexRoute =
+  dashboardCustomerFavoritesIndexRouteImport.update({
+    id: '/favorites/',
+    path: '/favorites/',
+    getParentRoute: () => dashboardCustomerRoute,
+  } as any)
+const dashboardCustomerCartIndexRoute =
+  dashboardCustomerCartIndexRouteImport.update({
+    id: '/cart/',
+    path: '/cart/',
+    getParentRoute: () => dashboardCustomerRoute,
+  } as any)
+const dashboardCustomerStoreStoreIdIndexRoute =
+  dashboardCustomerStoreStoreIdIndexRouteImport.update({
+    id: '/store/$storeId/',
+    path: '/store/$storeId/',
+    getParentRoute: () => dashboardCustomerRoute,
+  } as any)
+const dashboardCustomerOrdersOrderIdIndexRoute =
+  dashboardCustomerOrdersOrderIdIndexRouteImport.update({
+    id: '/orders/$orderId/',
+    path: '/orders/$orderId/',
+    getParentRoute: () => dashboardCustomerRoute,
+  } as any)
+const dashboardCustomerCategoryCategoryIndexRoute =
+  dashboardCustomerCategoryCategoryIndexRouteImport.update({
+    id: '/category/$category/',
+    path: '/category/$category/',
+    getParentRoute: () => dashboardCustomerRoute,
+  } as any)
 const dashboardSellerManageSettlementIdDetailRoute =
   dashboardSellerManageSettlementIdDetailRouteImport.update({
     id: '/manage/$settlementId/detail',
     path: '/manage/$settlementId/detail',
     getParentRoute: () => dashboardSellerRoute,
+  } as any)
+const dashboardCustomerStoreStoreIdProductProductIdIndexRoute =
+  dashboardCustomerStoreStoreIdProductProductIdIndexRouteImport.update({
+    id: '/store/$storeId/product/$productId/',
+    path: '/store/$storeId/product/$productId/',
+    getParentRoute: () => dashboardCustomerRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -150,9 +213,18 @@ export interface FileRoutesByFullPath {
   '/make-profile/customer': typeof MakeProfileCustomerIndexRoute
   '/make-profile/rider': typeof MakeProfileRiderIndexRoute
   '/make-profile/seller': typeof MakeProfileSellerIndexRoute
+  '/customer/cart': typeof dashboardCustomerCartIndexRoute
+  '/customer/favorites': typeof dashboardCustomerFavoritesIndexRoute
+  '/customer/mypage': typeof dashboardCustomerMypageIndexRoute
+  '/customer/orders': typeof dashboardCustomerOrdersIndexRoute
+  '/customer/search': typeof dashboardCustomerSearchIndexRoute
   '/seller/manage': typeof dashboardSellerManageIndexRoute
   '/seller/mypage': typeof dashboardSellerMypageIndexRoute
   '/seller/manage/$settlementId/detail': typeof dashboardSellerManageSettlementIdDetailRoute
+  '/customer/category/$category': typeof dashboardCustomerCategoryCategoryIndexRoute
+  '/customer/orders/$orderId': typeof dashboardCustomerOrdersOrderIdIndexRoute
+  '/customer/store/$storeId': typeof dashboardCustomerStoreStoreIdIndexRoute
+  '/customer/store/$storeId/product/$productId': typeof dashboardCustomerStoreStoreIdProductProductIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -166,9 +238,18 @@ export interface FileRoutesByTo {
   '/make-profile/customer': typeof MakeProfileCustomerIndexRoute
   '/make-profile/rider': typeof MakeProfileRiderIndexRoute
   '/make-profile/seller': typeof MakeProfileSellerIndexRoute
+  '/customer/cart': typeof dashboardCustomerCartIndexRoute
+  '/customer/favorites': typeof dashboardCustomerFavoritesIndexRoute
+  '/customer/mypage': typeof dashboardCustomerMypageIndexRoute
+  '/customer/orders': typeof dashboardCustomerOrdersIndexRoute
+  '/customer/search': typeof dashboardCustomerSearchIndexRoute
   '/seller/manage': typeof dashboardSellerManageIndexRoute
   '/seller/mypage': typeof dashboardSellerMypageIndexRoute
   '/seller/manage/$settlementId/detail': typeof dashboardSellerManageSettlementIdDetailRoute
+  '/customer/category/$category': typeof dashboardCustomerCategoryCategoryIndexRoute
+  '/customer/orders/$orderId': typeof dashboardCustomerOrdersOrderIdIndexRoute
+  '/customer/store/$storeId': typeof dashboardCustomerStoreStoreIdIndexRoute
+  '/customer/store/$storeId/product/$productId': typeof dashboardCustomerStoreStoreIdProductProductIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -189,9 +270,18 @@ export interface FileRoutesById {
   '/make-profile/customer/': typeof MakeProfileCustomerIndexRoute
   '/make-profile/rider/': typeof MakeProfileRiderIndexRoute
   '/make-profile/seller/': typeof MakeProfileSellerIndexRoute
+  '/(dashboard)/customer/cart/': typeof dashboardCustomerCartIndexRoute
+  '/(dashboard)/customer/favorites/': typeof dashboardCustomerFavoritesIndexRoute
+  '/(dashboard)/customer/mypage/': typeof dashboardCustomerMypageIndexRoute
+  '/(dashboard)/customer/orders/': typeof dashboardCustomerOrdersIndexRoute
+  '/(dashboard)/customer/search/': typeof dashboardCustomerSearchIndexRoute
   '/(dashboard)/seller/manage/': typeof dashboardSellerManageIndexRoute
   '/(dashboard)/seller/mypage/': typeof dashboardSellerMypageIndexRoute
   '/(dashboard)/seller/manage/$settlementId/detail': typeof dashboardSellerManageSettlementIdDetailRoute
+  '/(dashboard)/customer/category/$category/': typeof dashboardCustomerCategoryCategoryIndexRoute
+  '/(dashboard)/customer/orders/$orderId/': typeof dashboardCustomerOrdersOrderIdIndexRoute
+  '/(dashboard)/customer/store/$storeId/': typeof dashboardCustomerStoreStoreIdIndexRoute
+  '/(dashboard)/customer/store/$storeId/product/$productId/': typeof dashboardCustomerStoreStoreIdProductProductIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -210,9 +300,18 @@ export interface FileRouteTypes {
     | '/make-profile/customer'
     | '/make-profile/rider'
     | '/make-profile/seller'
+    | '/customer/cart'
+    | '/customer/favorites'
+    | '/customer/mypage'
+    | '/customer/orders'
+    | '/customer/search'
     | '/seller/manage'
     | '/seller/mypage'
     | '/seller/manage/$settlementId/detail'
+    | '/customer/category/$category'
+    | '/customer/orders/$orderId'
+    | '/customer/store/$storeId'
+    | '/customer/store/$storeId/product/$productId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -226,9 +325,18 @@ export interface FileRouteTypes {
     | '/make-profile/customer'
     | '/make-profile/rider'
     | '/make-profile/seller'
+    | '/customer/cart'
+    | '/customer/favorites'
+    | '/customer/mypage'
+    | '/customer/orders'
+    | '/customer/search'
     | '/seller/manage'
     | '/seller/mypage'
     | '/seller/manage/$settlementId/detail'
+    | '/customer/category/$category'
+    | '/customer/orders/$orderId'
+    | '/customer/store/$storeId'
+    | '/customer/store/$storeId/product/$productId'
   id:
     | '__root__'
     | '/'
@@ -248,9 +356,18 @@ export interface FileRouteTypes {
     | '/make-profile/customer/'
     | '/make-profile/rider/'
     | '/make-profile/seller/'
+    | '/(dashboard)/customer/cart/'
+    | '/(dashboard)/customer/favorites/'
+    | '/(dashboard)/customer/mypage/'
+    | '/(dashboard)/customer/orders/'
+    | '/(dashboard)/customer/search/'
     | '/(dashboard)/seller/manage/'
     | '/(dashboard)/seller/mypage/'
     | '/(dashboard)/seller/manage/$settlementId/detail'
+    | '/(dashboard)/customer/category/$category/'
+    | '/(dashboard)/customer/orders/$orderId/'
+    | '/(dashboard)/customer/store/$storeId/'
+    | '/(dashboard)/customer/store/$storeId/product/$productId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -402,6 +519,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof dashboardSellerManageIndexRouteImport
       parentRoute: typeof dashboardSellerRoute
     }
+    '/(dashboard)/customer/search/': {
+      id: '/(dashboard)/customer/search/'
+      path: '/search'
+      fullPath: '/customer/search'
+      preLoaderRoute: typeof dashboardCustomerSearchIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
+    '/(dashboard)/customer/orders/': {
+      id: '/(dashboard)/customer/orders/'
+      path: '/orders'
+      fullPath: '/customer/orders'
+      preLoaderRoute: typeof dashboardCustomerOrdersIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
+    '/(dashboard)/customer/mypage/': {
+      id: '/(dashboard)/customer/mypage/'
+      path: '/mypage'
+      fullPath: '/customer/mypage'
+      preLoaderRoute: typeof dashboardCustomerMypageIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
+    '/(dashboard)/customer/favorites/': {
+      id: '/(dashboard)/customer/favorites/'
+      path: '/favorites'
+      fullPath: '/customer/favorites'
+      preLoaderRoute: typeof dashboardCustomerFavoritesIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
+    '/(dashboard)/customer/cart/': {
+      id: '/(dashboard)/customer/cart/'
+      path: '/cart'
+      fullPath: '/customer/cart'
+      preLoaderRoute: typeof dashboardCustomerCartIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
+    '/(dashboard)/customer/store/$storeId/': {
+      id: '/(dashboard)/customer/store/$storeId/'
+      path: '/store/$storeId'
+      fullPath: '/customer/store/$storeId'
+      preLoaderRoute: typeof dashboardCustomerStoreStoreIdIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
+    '/(dashboard)/customer/orders/$orderId/': {
+      id: '/(dashboard)/customer/orders/$orderId/'
+      path: '/orders/$orderId'
+      fullPath: '/customer/orders/$orderId'
+      preLoaderRoute: typeof dashboardCustomerOrdersOrderIdIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
+    '/(dashboard)/customer/category/$category/': {
+      id: '/(dashboard)/customer/category/$category/'
+      path: '/category/$category'
+      fullPath: '/customer/category/$category'
+      preLoaderRoute: typeof dashboardCustomerCategoryCategoryIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
     '/(dashboard)/seller/manage/$settlementId/detail': {
       id: '/(dashboard)/seller/manage/$settlementId/detail'
       path: '/manage/$settlementId/detail'
@@ -409,17 +582,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof dashboardSellerManageSettlementIdDetailRouteImport
       parentRoute: typeof dashboardSellerRoute
     }
+    '/(dashboard)/customer/store/$storeId/product/$productId/': {
+      id: '/(dashboard)/customer/store/$storeId/product/$productId/'
+      path: '/store/$storeId/product/$productId'
+      fullPath: '/customer/store/$storeId/product/$productId'
+      preLoaderRoute: typeof dashboardCustomerStoreStoreIdProductProductIdIndexRouteImport
+      parentRoute: typeof dashboardCustomerRoute
+    }
   }
 }
 
 interface dashboardCustomerRouteChildren {
   dashboardCustomerLayoutRoute: typeof dashboardCustomerLayoutRoute
   dashboardCustomerIndexRoute: typeof dashboardCustomerIndexRoute
+  dashboardCustomerCartIndexRoute: typeof dashboardCustomerCartIndexRoute
+  dashboardCustomerFavoritesIndexRoute: typeof dashboardCustomerFavoritesIndexRoute
+  dashboardCustomerMypageIndexRoute: typeof dashboardCustomerMypageIndexRoute
+  dashboardCustomerOrdersIndexRoute: typeof dashboardCustomerOrdersIndexRoute
+  dashboardCustomerSearchIndexRoute: typeof dashboardCustomerSearchIndexRoute
+  dashboardCustomerCategoryCategoryIndexRoute: typeof dashboardCustomerCategoryCategoryIndexRoute
+  dashboardCustomerOrdersOrderIdIndexRoute: typeof dashboardCustomerOrdersOrderIdIndexRoute
+  dashboardCustomerStoreStoreIdIndexRoute: typeof dashboardCustomerStoreStoreIdIndexRoute
+  dashboardCustomerStoreStoreIdProductProductIdIndexRoute: typeof dashboardCustomerStoreStoreIdProductProductIdIndexRoute
 }
 
 const dashboardCustomerRouteChildren: dashboardCustomerRouteChildren = {
   dashboardCustomerLayoutRoute: dashboardCustomerLayoutRoute,
   dashboardCustomerIndexRoute: dashboardCustomerIndexRoute,
+  dashboardCustomerCartIndexRoute: dashboardCustomerCartIndexRoute,
+  dashboardCustomerFavoritesIndexRoute: dashboardCustomerFavoritesIndexRoute,
+  dashboardCustomerMypageIndexRoute: dashboardCustomerMypageIndexRoute,
+  dashboardCustomerOrdersIndexRoute: dashboardCustomerOrdersIndexRoute,
+  dashboardCustomerSearchIndexRoute: dashboardCustomerSearchIndexRoute,
+  dashboardCustomerCategoryCategoryIndexRoute:
+    dashboardCustomerCategoryCategoryIndexRoute,
+  dashboardCustomerOrdersOrderIdIndexRoute:
+    dashboardCustomerOrdersOrderIdIndexRoute,
+  dashboardCustomerStoreStoreIdIndexRoute:
+    dashboardCustomerStoreStoreIdIndexRoute,
+  dashboardCustomerStoreStoreIdProductProductIdIndexRoute:
+    dashboardCustomerStoreStoreIdProductProductIdIndexRoute,
 }
 
 const dashboardCustomerRouteWithChildren =

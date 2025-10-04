@@ -2,10 +2,13 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { createFileRoute } from '@tanstack/react-router';
-import { Bell, Heart, Home, ListFilter, MapPin, Search, ShoppingBag, Star, User } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Heart, Home, ListFilter, Search, ShoppingBag, Star, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { cn } from '@/lib/utils';
+
+import { CustomerHeader } from './_components/CustomerHeader';
+import { CustomerFooterNav } from './_components/CustomerFooterNav';
+import StoreFilterSheet, { type StoreFilterValue } from '@/components/StoreFilterSheet';
 
 export const Route = createFileRoute('/(dashboard)/customer/')({
   component: RouteComponent,
@@ -16,18 +19,24 @@ interface HomeSearchForm {
 }
 
 const CATEGORIES = [
-  { label: '식료품', color: 'bg-[#ECFFD9]', icon: ShoppingBag },
-  { label: '생활용품', color: 'bg-[#FFECD9]', icon: Home },
-  { label: '디저트', color: 'bg-[#E5F2FF]', icon: Star },
-  { label: '약국', color: 'bg-[#FFE5F4]', icon: Heart },
-  { label: '문구', color: 'bg-[#FFF7D9]', icon: User },
-  { label: '꽃집', color: 'bg-[#F0E5FF]', icon: ShoppingBag },
-  { label: '세탁', color: 'bg-[#E3FFF7]', icon: Home },
-  { label: '펫샵', color: 'bg-[#FFEADF]', icon: Heart },
-  { label: '더보기', color: 'bg-[#F3F4F6]', icon: ListFilter },
+  { label: '식료품', slug: 'groceries', color: 'bg-[#ECFFD9]', icon: ShoppingBag },
+  { label: '생활용품', slug: 'household', color: 'bg-[#FFECD9]', icon: Home },
+  { label: '디저트', slug: 'dessert', color: 'bg-[#E5F2FF]', icon: Star },
+  { label: '약국', slug: 'pharmacy', color: 'bg-[#FFE5F4]', icon: Heart },
+  { label: '문구', slug: 'stationery', color: 'bg-[#FFF7D9]', icon: User },
+  { label: '꽃집', slug: 'florist', color: 'bg-[#F0E5FF]', icon: ShoppingBag },
+  { label: '세탁', slug: 'laundry', color: 'bg-[#E3FFF7]', icon: Home },
+  { label: '펫샵', slug: 'petshop', color: 'bg-[#FFEADF]', icon: Heart },
+  { label: '전자기기', slug: 'electronics', color: 'bg-[#E5F2FF]', icon: Star },
+  { label: '반려동물', slug: 'pet-supplies', color: 'bg-[#FFE5F4]', icon: Heart },
+  { label: '베이커리', slug: 'bakery', color: 'bg-[#FFF7D9]', icon: User },
+  { label: '농산물', slug: 'produce', color: 'bg-[#ECFFD9]', icon: ShoppingBag },
+  { label: '해산물', slug: 'seafood', color: 'bg-[#E3FFF7]', icon: Home },
+  { label: '꽃배달', slug: 'flower-delivery', color: 'bg-[#F0E5FF]', icon: ShoppingBag },
 ];
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const { register, handleSubmit } = useForm<HomeSearchForm>({
     defaultValues: { keyword: '' },
   });
@@ -36,42 +45,15 @@ function RouteComponent() {
     console.log('search keyword', keyword);
   });
 
+  const [showAllCategories, setShowAllCategories] = React.useState(false);
+  const [filterOpen, setFilterOpen] = React.useState(false);
+  const [filters, setFilters] = React.useState<Partial<StoreFilterValue>>({});
+
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc] shadow-[0_32px_80px_-40px_rgba(26,86,75,0.55)]'>
-      <header className='relative px-4 pb-6 pt-9 text-white sm:px-6 sm:pt-10'>
-        <div className='flex items-start justify-between'>
-          <div className='space-y-1'>
-            <p className='text-[12px] font-semibold uppercase tracking-[0.3em]'>현재 위치</p>
-            <button className='flex items-center gap-2 text-left text-sm font-semibold text-white'>
-              서울시 성북구 돌곶이로 27
-              <MapPin className='size-4 opacity-80' aria-hidden />
-            </button>
-          </div>
-          <div className='flex items-center gap-2'>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='size-9 rounded-full border border-white/30 text-white hover:bg-white/10'>
-              <Bell className='size-4' aria-hidden />
-              <span className='sr-only'>알림</span>
-            </Button>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='size-9 rounded-full border border-white/30 text-white hover:bg-white/10'>
-              <ShoppingBag className='size-4' aria-hidden />
-              <span className='sr-only'>장바구니</span>
-            </Button>
-          </div>
-        </div>
-        <p className='mt-5 text-[1.75rem] font-extrabold leading-tight sm:text-3xl'>
-          동네 가게에서 필요한 걸
-          <br />
-          지금 바로 받아보세요
-        </p>
-      </header>
+      <CustomerHeader nickname='뭐든배달' address='서울시 성북구 돌곶이로 27' />
 
-      <main className='flex-1 space-y-5 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>
+      <main className='flex-1 space-y-5 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>
         <Card className='border-none bg-white shadow-sm'>
           <CardHeader className='space-y-1'>
             <CardTitle className='text-[15px] font-semibold text-[#1b1b1b]'>무엇을 찾고 계신가요?</CardTitle>
@@ -107,26 +89,32 @@ function RouteComponent() {
                 동네에서 자주 찾는 품목을 빠르게 만나보세요.
               </CardDescription>
             </div>
-            <Button
-              variant='ghost'
-              size='sm'
-              className='h-8 rounded-full border border-[#dbe4ec] px-3 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'>
-              더보기
-            </Button>
           </CardHeader>
           <CardContent>
-            <div className='grid grid-cols-3 gap-3'>
-              {CATEGORIES.map(({ label, color, icon: Icon }) => (
+            <div className='grid grid-cols-5 gap-2'>
+              {(showAllCategories ? CATEGORIES : CATEGORIES.slice(0, 9)).map(({ label, slug, color, icon: Icon }) => (
                 <button
-                  key={label}
+                  key={slug}
                   type='button'
-                  className='flex flex-col items-center gap-2 rounded-2xl bg-white p-3 text-[12px] font-semibold text-[#1b1b1b] shadow-[0_12px_32px_-24px_rgba(15,23,42,0.35)] transition-colors hover:bg-[#f5f7f9]'>
-                  <span className={`flex size-14 items-center justify-center rounded-full ${color}`}>
-                    <Icon className='size-6 text-[#1f6e6b]' aria-hidden />
+                  onClick={() => navigate({ to: '/customer/category/$category', params: { category: slug } })}
+                  className='flex flex-col items-center gap-1.5 rounded-2xl bg-white p-2 text-[11px] font-semibold text-[#1b1b1b] shadow-[0_12px_32px_-24px_rgba(15,23,42,0.35)] transition-colors hover:bg-[#f5f7f9]'>
+                  <span className={`flex size-12 items-center justify-center rounded-full ${color}`}>
+                    <Icon className='size-5 text-[#1f6e6b]' aria-hidden />
                   </span>
                   {label}
                 </button>
               ))}
+              {!showAllCategories && CATEGORIES.length > 10 && (
+                <button
+                  type='button'
+                  onClick={() => setShowAllCategories(true)}
+                  className='flex flex-col items-center gap-1.5 rounded-2xl bg-white p-2 text-[11px] font-semibold text-[#1b1b1b] shadow-[0_12px_32px_-24px_rgba(15,23,42,0.35)] transition-colors hover:bg-[#f5f7f9]'>
+                  <span className='flex size-12 items-center justify-center rounded-full bg-[#F3F4F6]'>
+                    <ListFilter className='size-5 text-[#1f6e6b]' aria-hidden />
+                  </span>
+                  더보기
+                </button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -137,6 +125,7 @@ function RouteComponent() {
             <Button
               variant='ghost'
               size='sm'
+              onClick={() => setFilterOpen(true)}
               className='h-8 rounded-full border border-[#dbe4ec] px-3 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'>
               필터링
             </Button>
@@ -169,37 +158,36 @@ function RouteComponent() {
             ))}
           </div>
         </section>
+        <div className='h-[calc(68px+env(safe-area-inset-bottom))]' />
       </main>
 
-      <footer className='border-t border-white/20 bg-[#2ac1bc] px-4 py-4 text-white sm:px-6'>
-        <nav className='flex items-center justify-between text-[12px] font-semibold'>
-          <FooterNav label='홈' icon={Home} active />
-          <FooterNav label='검색' icon={Search} />
-          <FooterNav label='즐겨찾기' icon={Heart} />
-          <FooterNav label='주문내역' icon={ListFilter} />
-          <FooterNav label='마이뭐든' icon={User} />
-        </nav>
-      </footer>
+      <StoreFilterSheet
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+        value={filters}
+        onApply={(v) => setFilters(v)}
+        onReset={() => setFilters({})}
+      />
+
+      <div className='fixed inset-x-0 bottom-0 z-50'>
+        <CustomerFooterNav
+          items={[
+            { label: '홈', icon: Home },
+            { label: '검색', icon: Search },
+            { label: '즐겨찾기', icon: Heart },
+            { label: '주문내역', icon: ListFilter },
+            { label: '마이뭐든', icon: User },
+          ]}
+          activeIndex={0}
+          onClickItem={(idx) => {
+            if (idx === 0) navigate({ to: '/customer' });
+            if (idx === 1) navigate({ to: '/customer/search' });
+            if (idx === 2) navigate({ to: '/customer/favorites' });
+            if (idx === 3) navigate({ to: '/customer/orders' });
+            if (idx === 4) navigate({ to: '/customer/mypage' });
+          }}
+        />
+      </div>
     </div>
-  );
-}
-
-interface FooterNavProps {
-  label: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  active?: boolean;
-}
-
-function FooterNav({ label, icon: Icon, active = false }: FooterNavProps) {
-  return (
-    <button
-      type='button'
-      className={cn(
-        'flex flex-col items-center gap-1 rounded-full px-3 py-1 text-white/80 transition-colors',
-        active ? 'text-white' : 'hover:text-white'
-      )}>
-      <Icon className='size-5' aria-hidden />
-      {label}
-    </button>
   );
 }
