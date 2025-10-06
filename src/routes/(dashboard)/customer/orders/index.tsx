@@ -1,11 +1,9 @@
-import * as React from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+// React import removed (not used explicitly)
+import { createFileRoute } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft } from 'lucide-react';
-import { CustomerFooterNav } from '../_components/CustomerFooterNav';
-import { Heart, Home, ListFilter, Search, User } from 'lucide-react';
 
 export const Route = createFileRoute('/(dashboard)/customer/orders/')({
   component: RouteComponent,
@@ -79,7 +77,6 @@ function OrderRow({ item }: { item: OrderItem }) {
 }
 
 function RouteComponent() {
-  const navigate = useNavigate();
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
       <header className='px-4 pb-5 pt-9 text-white sm:px-6 sm:pt-10'>
@@ -128,23 +125,6 @@ function RouteComponent() {
         </Tabs>
         <div className='h-[calc(68px+env(safe-area-inset-bottom))]' />
       </main>
-
-      <div className='fixed inset-x-0 bottom-0 z-50'>
-        <CustomerFooterNav
-          items={[
-            { label: '홈', icon: Home },
-            { label: '검색', icon: Search },
-            { label: '즐겨찾기', icon: Heart },
-            { label: '주문내역', icon: ListFilter },
-            { label: '마이뭐든', icon: User },
-          ]}
-          activeIndex={3}
-          onClickItem={(idx) => {
-            if (idx === 0) navigate({ to: '/customer' });
-            if (idx === 3) navigate({ to: '/customer/orders' });
-          }}
-        />
-      </div>
     </div>
   );
 }

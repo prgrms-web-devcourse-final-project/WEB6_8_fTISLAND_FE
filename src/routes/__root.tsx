@@ -1,5 +1,4 @@
 import { Outlet, createRootRoute, useLocation, useNavigate } from '@tanstack/react-router';
-import * as React from 'react';
 import { CustomerFooterNav } from './(dashboard)/customer/_components/CustomerFooterNav';
 import { Heart, Home, ListFilter, Search, User } from 'lucide-react';
 

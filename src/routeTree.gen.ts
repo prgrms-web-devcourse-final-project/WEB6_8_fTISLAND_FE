@@ -27,15 +27,20 @@ import { Route as dashboardRiderLayoutRouteImport } from './routes/(dashboard)/r
 import { Route as dashboardCustomerLayoutRouteImport } from './routes/(dashboard)/customer/_layout'
 import { Route as dashboardSellerMypageIndexRouteImport } from './routes/(dashboard)/seller/mypage/index'
 import { Route as dashboardSellerManageIndexRouteImport } from './routes/(dashboard)/seller/manage/index'
+import { Route as dashboardRiderSettlementIndexRouteImport } from './routes/(dashboard)/rider/settlement/index'
+import { Route as dashboardRiderMypageIndexRouteImport } from './routes/(dashboard)/rider/mypage/index'
+import { Route as dashboardRiderHistoryIndexRouteImport } from './routes/(dashboard)/rider/history/index'
 import { Route as dashboardCustomerSearchIndexRouteImport } from './routes/(dashboard)/customer/search/index'
 import { Route as dashboardCustomerOrdersIndexRouteImport } from './routes/(dashboard)/customer/orders/index'
 import { Route as dashboardCustomerMypageIndexRouteImport } from './routes/(dashboard)/customer/mypage/index'
 import { Route as dashboardCustomerFavoritesIndexRouteImport } from './routes/(dashboard)/customer/favorites/index'
 import { Route as dashboardCustomerCartIndexRouteImport } from './routes/(dashboard)/customer/cart/index'
+import { Route as dashboardRiderOrdersOrderIdIndexRouteImport } from './routes/(dashboard)/rider/orders/$orderId/index'
 import { Route as dashboardCustomerStoreStoreIdIndexRouteImport } from './routes/(dashboard)/customer/store/$storeId/index'
 import { Route as dashboardCustomerOrdersOrderIdIndexRouteImport } from './routes/(dashboard)/customer/orders/$orderId/index'
 import { Route as dashboardCustomerCategoryCategoryIndexRouteImport } from './routes/(dashboard)/customer/category/$category/index'
 import { Route as dashboardSellerManageSettlementIdDetailRouteImport } from './routes/(dashboard)/seller/manage/$settlementId/detail'
+import { Route as dashboardRiderOrdersOrderIdDetailRouteImport } from './routes/(dashboard)/rider/orders/$orderId/detail'
 import { Route as dashboardCustomerStoreStoreIdProductProductIdIndexRouteImport } from './routes/(dashboard)/customer/store/$storeId/product/$productId/index'
 
 const dashboardSellerRouteImport = createFileRoute('/(dashboard)/seller')()
@@ -137,6 +142,24 @@ const dashboardSellerManageIndexRoute =
     path: '/manage/',
     getParentRoute: () => dashboardSellerRoute,
   } as any)
+const dashboardRiderSettlementIndexRoute =
+  dashboardRiderSettlementIndexRouteImport.update({
+    id: '/settlement/',
+    path: '/settlement/',
+    getParentRoute: () => dashboardRiderRoute,
+  } as any)
+const dashboardRiderMypageIndexRoute =
+  dashboardRiderMypageIndexRouteImport.update({
+    id: '/mypage/',
+    path: '/mypage/',
+    getParentRoute: () => dashboardRiderRoute,
+  } as any)
+const dashboardRiderHistoryIndexRoute =
+  dashboardRiderHistoryIndexRouteImport.update({
+    id: '/history/',
+    path: '/history/',
+    getParentRoute: () => dashboardRiderRoute,
+  } as any)
 const dashboardCustomerSearchIndexRoute =
   dashboardCustomerSearchIndexRouteImport.update({
     id: '/search/',
@@ -167,6 +190,12 @@ const dashboardCustomerCartIndexRoute =
     path: '/cart/',
     getParentRoute: () => dashboardCustomerRoute,
   } as any)
+const dashboardRiderOrdersOrderIdIndexRoute =
+  dashboardRiderOrdersOrderIdIndexRouteImport.update({
+    id: '/orders/$orderId/',
+    path: '/orders/$orderId/',
+    getParentRoute: () => dashboardRiderRoute,
+  } as any)
 const dashboardCustomerStoreStoreIdIndexRoute =
   dashboardCustomerStoreStoreIdIndexRouteImport.update({
     id: '/store/$storeId/',
@@ -190,6 +219,12 @@ const dashboardSellerManageSettlementIdDetailRoute =
     id: '/manage/$settlementId/detail',
     path: '/manage/$settlementId/detail',
     getParentRoute: () => dashboardSellerRoute,
+  } as any)
+const dashboardRiderOrdersOrderIdDetailRoute =
+  dashboardRiderOrdersOrderIdDetailRouteImport.update({
+    id: '/orders/$orderId/detail',
+    path: '/orders/$orderId/detail',
+    getParentRoute: () => dashboardRiderRoute,
   } as any)
 const dashboardCustomerStoreStoreIdProductProductIdIndexRoute =
   dashboardCustomerStoreStoreIdProductProductIdIndexRouteImport.update({
@@ -218,12 +253,17 @@ export interface FileRoutesByFullPath {
   '/customer/mypage': typeof dashboardCustomerMypageIndexRoute
   '/customer/orders': typeof dashboardCustomerOrdersIndexRoute
   '/customer/search': typeof dashboardCustomerSearchIndexRoute
+  '/rider/history': typeof dashboardRiderHistoryIndexRoute
+  '/rider/mypage': typeof dashboardRiderMypageIndexRoute
+  '/rider/settlement': typeof dashboardRiderSettlementIndexRoute
   '/seller/manage': typeof dashboardSellerManageIndexRoute
   '/seller/mypage': typeof dashboardSellerMypageIndexRoute
+  '/rider/orders/$orderId/detail': typeof dashboardRiderOrdersOrderIdDetailRoute
   '/seller/manage/$settlementId/detail': typeof dashboardSellerManageSettlementIdDetailRoute
   '/customer/category/$category': typeof dashboardCustomerCategoryCategoryIndexRoute
   '/customer/orders/$orderId': typeof dashboardCustomerOrdersOrderIdIndexRoute
   '/customer/store/$storeId': typeof dashboardCustomerStoreStoreIdIndexRoute
+  '/rider/orders/$orderId': typeof dashboardRiderOrdersOrderIdIndexRoute
   '/customer/store/$storeId/product/$productId': typeof dashboardCustomerStoreStoreIdProductProductIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -243,12 +283,17 @@ export interface FileRoutesByTo {
   '/customer/mypage': typeof dashboardCustomerMypageIndexRoute
   '/customer/orders': typeof dashboardCustomerOrdersIndexRoute
   '/customer/search': typeof dashboardCustomerSearchIndexRoute
+  '/rider/history': typeof dashboardRiderHistoryIndexRoute
+  '/rider/mypage': typeof dashboardRiderMypageIndexRoute
+  '/rider/settlement': typeof dashboardRiderSettlementIndexRoute
   '/seller/manage': typeof dashboardSellerManageIndexRoute
   '/seller/mypage': typeof dashboardSellerMypageIndexRoute
+  '/rider/orders/$orderId/detail': typeof dashboardRiderOrdersOrderIdDetailRoute
   '/seller/manage/$settlementId/detail': typeof dashboardSellerManageSettlementIdDetailRoute
   '/customer/category/$category': typeof dashboardCustomerCategoryCategoryIndexRoute
   '/customer/orders/$orderId': typeof dashboardCustomerOrdersOrderIdIndexRoute
   '/customer/store/$storeId': typeof dashboardCustomerStoreStoreIdIndexRoute
+  '/rider/orders/$orderId': typeof dashboardRiderOrdersOrderIdIndexRoute
   '/customer/store/$storeId/product/$productId': typeof dashboardCustomerStoreStoreIdProductProductIdIndexRoute
 }
 export interface FileRoutesById {
@@ -275,12 +320,17 @@ export interface FileRoutesById {
   '/(dashboard)/customer/mypage/': typeof dashboardCustomerMypageIndexRoute
   '/(dashboard)/customer/orders/': typeof dashboardCustomerOrdersIndexRoute
   '/(dashboard)/customer/search/': typeof dashboardCustomerSearchIndexRoute
+  '/(dashboard)/rider/history/': typeof dashboardRiderHistoryIndexRoute
+  '/(dashboard)/rider/mypage/': typeof dashboardRiderMypageIndexRoute
+  '/(dashboard)/rider/settlement/': typeof dashboardRiderSettlementIndexRoute
   '/(dashboard)/seller/manage/': typeof dashboardSellerManageIndexRoute
   '/(dashboard)/seller/mypage/': typeof dashboardSellerMypageIndexRoute
+  '/(dashboard)/rider/orders/$orderId/detail': typeof dashboardRiderOrdersOrderIdDetailRoute
   '/(dashboard)/seller/manage/$settlementId/detail': typeof dashboardSellerManageSettlementIdDetailRoute
   '/(dashboard)/customer/category/$category/': typeof dashboardCustomerCategoryCategoryIndexRoute
   '/(dashboard)/customer/orders/$orderId/': typeof dashboardCustomerOrdersOrderIdIndexRoute
   '/(dashboard)/customer/store/$storeId/': typeof dashboardCustomerStoreStoreIdIndexRoute
+  '/(dashboard)/rider/orders/$orderId/': typeof dashboardRiderOrdersOrderIdIndexRoute
   '/(dashboard)/customer/store/$storeId/product/$productId/': typeof dashboardCustomerStoreStoreIdProductProductIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -305,12 +355,17 @@ export interface FileRouteTypes {
     | '/customer/mypage'
     | '/customer/orders'
     | '/customer/search'
+    | '/rider/history'
+    | '/rider/mypage'
+    | '/rider/settlement'
     | '/seller/manage'
     | '/seller/mypage'
+    | '/rider/orders/$orderId/detail'
     | '/seller/manage/$settlementId/detail'
     | '/customer/category/$category'
     | '/customer/orders/$orderId'
     | '/customer/store/$storeId'
+    | '/rider/orders/$orderId'
     | '/customer/store/$storeId/product/$productId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -330,12 +385,17 @@ export interface FileRouteTypes {
     | '/customer/mypage'
     | '/customer/orders'
     | '/customer/search'
+    | '/rider/history'
+    | '/rider/mypage'
+    | '/rider/settlement'
     | '/seller/manage'
     | '/seller/mypage'
+    | '/rider/orders/$orderId/detail'
     | '/seller/manage/$settlementId/detail'
     | '/customer/category/$category'
     | '/customer/orders/$orderId'
     | '/customer/store/$storeId'
+    | '/rider/orders/$orderId'
     | '/customer/store/$storeId/product/$productId'
   id:
     | '__root__'
@@ -361,12 +421,17 @@ export interface FileRouteTypes {
     | '/(dashboard)/customer/mypage/'
     | '/(dashboard)/customer/orders/'
     | '/(dashboard)/customer/search/'
+    | '/(dashboard)/rider/history/'
+    | '/(dashboard)/rider/mypage/'
+    | '/(dashboard)/rider/settlement/'
     | '/(dashboard)/seller/manage/'
     | '/(dashboard)/seller/mypage/'
+    | '/(dashboard)/rider/orders/$orderId/detail'
     | '/(dashboard)/seller/manage/$settlementId/detail'
     | '/(dashboard)/customer/category/$category/'
     | '/(dashboard)/customer/orders/$orderId/'
     | '/(dashboard)/customer/store/$storeId/'
+    | '/(dashboard)/rider/orders/$orderId/'
     | '/(dashboard)/customer/store/$storeId/product/$productId/'
   fileRoutesById: FileRoutesById
 }
@@ -519,6 +584,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof dashboardSellerManageIndexRouteImport
       parentRoute: typeof dashboardSellerRoute
     }
+    '/(dashboard)/rider/settlement/': {
+      id: '/(dashboard)/rider/settlement/'
+      path: '/settlement'
+      fullPath: '/rider/settlement'
+      preLoaderRoute: typeof dashboardRiderSettlementIndexRouteImport
+      parentRoute: typeof dashboardRiderRoute
+    }
+    '/(dashboard)/rider/mypage/': {
+      id: '/(dashboard)/rider/mypage/'
+      path: '/mypage'
+      fullPath: '/rider/mypage'
+      preLoaderRoute: typeof dashboardRiderMypageIndexRouteImport
+      parentRoute: typeof dashboardRiderRoute
+    }
+    '/(dashboard)/rider/history/': {
+      id: '/(dashboard)/rider/history/'
+      path: '/history'
+      fullPath: '/rider/history'
+      preLoaderRoute: typeof dashboardRiderHistoryIndexRouteImport
+      parentRoute: typeof dashboardRiderRoute
+    }
     '/(dashboard)/customer/search/': {
       id: '/(dashboard)/customer/search/'
       path: '/search'
@@ -554,6 +640,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof dashboardCustomerCartIndexRouteImport
       parentRoute: typeof dashboardCustomerRoute
     }
+    '/(dashboard)/rider/orders/$orderId/': {
+      id: '/(dashboard)/rider/orders/$orderId/'
+      path: '/orders/$orderId'
+      fullPath: '/rider/orders/$orderId'
+      preLoaderRoute: typeof dashboardRiderOrdersOrderIdIndexRouteImport
+      parentRoute: typeof dashboardRiderRoute
+    }
     '/(dashboard)/customer/store/$storeId/': {
       id: '/(dashboard)/customer/store/$storeId/'
       path: '/store/$storeId'
@@ -581,6 +674,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/seller/manage/$settlementId/detail'
       preLoaderRoute: typeof dashboardSellerManageSettlementIdDetailRouteImport
       parentRoute: typeof dashboardSellerRoute
+    }
+    '/(dashboard)/rider/orders/$orderId/detail': {
+      id: '/(dashboard)/rider/orders/$orderId/detail'
+      path: '/orders/$orderId/detail'
+      fullPath: '/rider/orders/$orderId/detail'
+      preLoaderRoute: typeof dashboardRiderOrdersOrderIdDetailRouteImport
+      parentRoute: typeof dashboardRiderRoute
     }
     '/(dashboard)/customer/store/$storeId/product/$productId/': {
       id: '/(dashboard)/customer/store/$storeId/product/$productId/'
@@ -630,11 +730,22 @@ const dashboardCustomerRouteWithChildren =
 interface dashboardRiderRouteChildren {
   dashboardRiderLayoutRoute: typeof dashboardRiderLayoutRoute
   dashboardRiderIndexRoute: typeof dashboardRiderIndexRoute
+  dashboardRiderHistoryIndexRoute: typeof dashboardRiderHistoryIndexRoute
+  dashboardRiderMypageIndexRoute: typeof dashboardRiderMypageIndexRoute
+  dashboardRiderSettlementIndexRoute: typeof dashboardRiderSettlementIndexRoute
+  dashboardRiderOrdersOrderIdDetailRoute: typeof dashboardRiderOrdersOrderIdDetailRoute
+  dashboardRiderOrdersOrderIdIndexRoute: typeof dashboardRiderOrdersOrderIdIndexRoute
 }
 
 const dashboardRiderRouteChildren: dashboardRiderRouteChildren = {
   dashboardRiderLayoutRoute: dashboardRiderLayoutRoute,
   dashboardRiderIndexRoute: dashboardRiderIndexRoute,
+  dashboardRiderHistoryIndexRoute: dashboardRiderHistoryIndexRoute,
+  dashboardRiderMypageIndexRoute: dashboardRiderMypageIndexRoute,
+  dashboardRiderSettlementIndexRoute: dashboardRiderSettlementIndexRoute,
+  dashboardRiderOrdersOrderIdDetailRoute:
+    dashboardRiderOrdersOrderIdDetailRoute,
+  dashboardRiderOrdersOrderIdIndexRoute: dashboardRiderOrdersOrderIdIndexRoute,
 }
 
 const dashboardRiderRouteWithChildren = dashboardRiderRoute._addFileChildren(

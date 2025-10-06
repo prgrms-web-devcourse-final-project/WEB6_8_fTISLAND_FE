@@ -7,7 +7,6 @@ import { Heart, Home, ListFilter, Search, ShoppingBag, Star, User } from 'lucide
 import { useForm } from 'react-hook-form';
 
 import { CustomerHeader } from './_components/CustomerHeader';
-import { CustomerFooterNav } from './_components/CustomerFooterNav';
 import StoreFilterSheet, { type StoreFilterValue } from '@/components/StoreFilterSheet';
 
 export const Route = createFileRoute('/(dashboard)/customer/')({
@@ -168,26 +167,6 @@ function RouteComponent() {
         onApply={(v) => setFilters(v)}
         onReset={() => setFilters({})}
       />
-
-      <div className='fixed inset-x-0 bottom-0 z-50'>
-        <CustomerFooterNav
-          items={[
-            { label: '홈', icon: Home },
-            { label: '검색', icon: Search },
-            { label: '즐겨찾기', icon: Heart },
-            { label: '주문내역', icon: ListFilter },
-            { label: '마이뭐든', icon: User },
-          ]}
-          activeIndex={0}
-          onClickItem={(idx) => {
-            if (idx === 0) navigate({ to: '/customer' });
-            if (idx === 1) navigate({ to: '/customer/search' });
-            if (idx === 2) navigate({ to: '/customer/favorites' });
-            if (idx === 3) navigate({ to: '/customer/orders' });
-            if (idx === 4) navigate({ to: '/customer/mypage' });
-          }}
-        />
-      </div>
     </div>
   );
 }

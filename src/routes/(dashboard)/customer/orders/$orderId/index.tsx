@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
-import { CustomerFooterNav } from '../../_components/CustomerFooterNav';
 import { Heart, Home, ListFilter, Search, User } from 'lucide-react';
 import {
   AlertDialog,
@@ -159,23 +158,6 @@ function RouteComponent() {
 
         <div className='h-[calc(68px+env(safe-area-inset-bottom))]' />
       </main>
-
-      <div className='fixed inset-x-0 bottom-0 z-50'>
-        <CustomerFooterNav
-          items={[
-            { label: '홈', icon: Home },
-            { label: '검색', icon: Search },
-            { label: '즐겨찾기', icon: Heart },
-            { label: '주문내역', icon: ListFilter },
-            { label: '마이뭐든', icon: User },
-          ]}
-          activeIndex={3}
-          onClickItem={(idx) => {
-            if (idx === 0) navigate({ to: '/customer' });
-            if (idx === 3) navigate({ to: '/customer/orders' });
-          }}
-        />
-      </div>
 
       <AlertDialog open={openCancel} onOpenChange={setOpenCancel}>
         <AlertDialogContent>

@@ -6,13 +6,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User, Store, Bike } from 'lucide-react';
+import { RiderPageLayout } from '../RiderPageLayout';
 
-export const Route = createFileRoute('/(dashboard)/customer/mypage/')({
+export const Route = createFileRoute('/(dashboard)/rider/mypage/')({
   component: RouteComponent,
 });
 
 const PROFILE = {
-  nickname: '맛있는 김치찜',
+  nickname: '빠른 라이더',
   address: '서울 성북구 동소문로25길 12 1층',
 };
 
@@ -23,13 +24,13 @@ function RouteComponent() {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
   const [keyboardOffset, setKeyboardOffset] = React.useState(0);
   const [roleProfiles] = React.useState<{
-    customer?: { nickname: string };
+    customer?: { nickname: string } | null;
     seller?: { nickname: string } | null;
     rider?: { nickname: string } | null;
   }>({
-    customer: { nickname: PROFILE.nickname },
+    customer: null,
     seller: null,
-    rider: null,
+    rider: { nickname: PROFILE.nickname },
   });
 
   React.useEffect(() => {
@@ -56,8 +57,8 @@ function RouteComponent() {
   }, [isPasswordDialogOpen]);
 
   return (
-    <div className='flex min-h-[100dvh] w-full flex-col bg-[#f8f9fa] text-[#1b1b1b]'>
-      <main className='flex-1 space-y-5 overflow-y-auto px-4 pb-28 pt-8 sm:px-6 sm:pb-32 sm:pt-10'>
+    <RiderPageLayout>
+      <main className='flex-1 space-y-5 overflow-y-auto pb-6 pt-8 sm:px-6 sm:pb-7 sm:pt-10'>
         <section className='flex flex-col items-center gap-4 text-center'>
           <div className='relative flex size-24 items-center justify-center rounded-full bg-[#e0f7f5] text-[24px] font-extrabold text-[#1ba7a1] shadow-[0_18px_40px_-32px_rgba(15,23,42,0.35)]'>
             {PROFILE.nickname.charAt(0)}
@@ -66,7 +67,7 @@ function RouteComponent() {
             <h1 className='text-[20px] font-extrabold text-[#1b1b1b]'>{PROFILE.nickname}</h1>
             <div className='flex items-center justify-center gap-2'>
               <span className='rounded-full bg-[#2ac1bc]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1f6e6b]'>
-                소비자
+                라이더
               </span>
               <span className='text-[13px] text-[#6b7785]'>{PROFILE.address}</span>
             </div>
@@ -74,10 +75,11 @@ function RouteComponent() {
           <div className='flex gap-2'>
             <Button
               variant='outline'
-              className='h-9 rounded-full border-[#cbd8e2] px-4 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'>
+              className='h-9 rounded-full border-[#cbd8e2] text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'
+              onClick={() => navigate({ to: '/manage-address' })}>
               주소 관리
             </Button>
-            <Button className='h-9 rounded-full bg-[#1ba7a1] px-4 text-[12px] font-semibold text-white hover:bg-[#17928d]'>
+            <Button className='h-9 rounded-full bg-[#1ba7a1] text-[12px] font-semibold text-white hover:bg-[#17928d]'>
               리뷰 관리
             </Button>
           </div>
@@ -100,8 +102,7 @@ function RouteComponent() {
                 ) : (
                   <Button
                     size='sm'
-                    className='h-8 w-full rounded-full bg-[#2ac1bc] text-[10px] font-semibold text-white hover:bg-[#1ba7a1]'
-                    onClick={() => navigate({ to: '/make-profile/customer' })}>
+                    className='h-8 w-full rounded-full bg-[#2ac1bc] text-[10px] font-semibold text-white hover:bg-[#1ba7a1]'>
                     프로필 생성하기
                   </Button>
                 )}
@@ -118,8 +119,7 @@ function RouteComponent() {
                 ) : (
                   <Button
                     size='sm'
-                    className='h-8 w-full rounded-full bg-[#2ac1bc] text-[10px] font-semibold text-white hover:bg-[#1ba7a1]'
-                    onClick={() => navigate({ to: '/make-profile/seller' })}>
+                    className='h-8 w-full rounded-full bg-[#2ac1bc] text-[10px] font-semibold text-white hover:bg-[#1ba7a1]'>
                     프로필 생성하기
                   </Button>
                 )}
@@ -136,8 +136,7 @@ function RouteComponent() {
                 ) : (
                   <Button
                     size='sm'
-                    className='h-8 w-full rounded-full bg-[#2ac1bc] text-[10px] font-semibold text-white hover:bg-[#1ba7a1]'
-                    onClick={() => navigate({ to: '/make-profile/rider' })}>
+                    className='h-8 w-full rounded-full bg-[#2ac1bc] text-[10px] font-semibold text-white hover:bg-[#1ba7a1]'>
                     프로필 생성하기
                   </Button>
                 )}
@@ -223,6 +222,6 @@ function RouteComponent() {
           </CardContent>
         </Card>
       </main>
-    </div>
+    </RiderPageLayout>
   );
 }

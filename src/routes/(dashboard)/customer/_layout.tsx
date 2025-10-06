@@ -1,4 +1,4 @@
-import * as React from 'react';
+// React import removed (not used explicitly)
 import { Outlet, createFileRoute, useNavigate, useLocation } from '@tanstack/react-router';
 import { CustomerFooterNav } from './_components/CustomerFooterNav';
 import { Heart, Home, ListFilter, Search, User } from 'lucide-react';
