@@ -6,13 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { SellerFooterNav } from '../_components/SellerFooterNav';
-import { Home, Package, User, Store, Bike } from 'lucide-react';
+import { User, Store, Bike } from 'lucide-react';
+import useLogout from '@/routes/login/_hooks/useLogout';
+import { useAuthStore } from '@/store/auth';
 
-const FOOTER_ITEMS = [
-  { icon: Home, label: '홈', href: '/seller' },
-  { icon: Package, label: '관리', href: '/seller/manage' },
-  { icon: User, label: '마이뭐든', href: '/seller/mypage', active: true },
-];
+// footer items are rendered by SellerFooterNav directly
 
 export const Route = createFileRoute('/(dashboard)/seller/mypage/')({
   component: RouteComponent,
@@ -73,6 +71,10 @@ function RouteComponent() {
       viewport.removeEventListener('scroll', handleViewportChange);
     };
   }, [isPasswordDialogOpen]);
+
+  const { logout } = useLogout();
+  const clearAuth = useAuthStore((s) => s.clear);
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#f8f9fa] text-[#1b1b1b]'>
@@ -232,8 +234,41 @@ function RouteComponent() {
                 </DialogContent>
               </Dialog>
             </div>
+            <div className='flex items-center justify-between rounded-2xl bg-[#f5f7f9] px-4 py-3'>
+              <div>
+                <p className='text-[12px] font-semibold text-[#6b7785]'>로그아웃</p>
+                <p className='text-[10px] text-[#9aa5b1]'>현재 기기에서 로그아웃합니다.</p>
+              </div>
+              <Button
+                className='h-9 rounded-full bg-[#f43f5e] px-4 text-[12px] font-semibold text-white hover:bg-[#e11d48]'
+                onClick={() => setConfirmOpen(true)}>
+                로그아웃
+              </Button>
+            </div>
           </CardContent>
         </Card>
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>로그아웃하시겠습니까?</DialogTitle>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant='outline' onClick={() => setConfirmOpen(false)}>
+                취소
+              </Button>
+              <Button
+                className='bg-[#f43f5e] hover:bg-[#e11d48]'
+                onClick={async () => {
+                  await logout();
+                  clearAuth();
+                  setConfirmOpen(false);
+                  navigate({ to: '/login' });
+                }}>
+                로그아웃
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
       <SellerFooterNav active='my' />
     </div>

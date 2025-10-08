@@ -1,5 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LoginForm } from './_components/LoginForm';
+import useLogin from './_hooks/useLogin';
+import { useAuthStore, type AuthState } from '@/store/auth';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/login/')({
   component: RouteComponent,
@@ -7,10 +10,45 @@ export const Route = createFileRoute('/login/')({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { login } = useLogin();
+  const setAuth = useAuthStore((s: AuthState) => s.setAuth);
   return (
     <LoginForm
-      onSubmit={(values) => {
-        console.log('login submit', values);
+      onSubmit={async ({ email, password }) => {
+        const res = await login({ email, password });
+        if (res?.success) {
+          const c = res.content;
+          setAuth({
+            userId: c.userId,
+            email: c.email,
+            name: c.name,
+            currentActiveProfileType: c.currentActiveProfileType,
+            currentActiveProfileId: c.currentActiveProfileId,
+            isOnboardingCompleted: c.isOnboardingCompleted,
+            availableProfiles: c.availableProfiles,
+            accessToken: c.accessToken,
+            refreshToken: c.refreshToken,
+          });
+          toast.success('로그인에 성공했어요.');
+          if (!c.isOnboardingCompleted) {
+            navigate({ to: '/make-profile' });
+            return;
+          }
+          // 온보딩 완료: 활성 프로필 타입에 따라 대시보드로 이동
+          switch (c.currentActiveProfileType) {
+            case 'CUSTOMER':
+              navigate({ to: '/customer' });
+              break;
+            case 'SELLER':
+              navigate({ to: '/seller' });
+              break;
+            case 'RIDER':
+              navigate({ to: '/rider' });
+              break;
+            default:
+              navigate({ to: '/' });
+          }
+        }
       }}
       onSignup={() => {
         navigate({ to: '/signup' });

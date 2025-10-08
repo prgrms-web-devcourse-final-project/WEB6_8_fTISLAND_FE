@@ -4,6 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import useSignup from './_hooks/useSignup';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/signup/')({
   component: RouteComponent,
@@ -21,8 +23,21 @@ function RouteComponent() {
   }>({
     defaultValues: { name: '', phone: '', phoneCode: '', email: '', password: '', confirm: '' },
   });
-  const submit = handleSubmit((values) => {
-    console.log('signup submit', values);
+  const { signup, loading } = useSignup();
+  const submit = handleSubmit(async ({ name, phone, email, password, confirm }) => {
+    if (!name || !phone || !email || !password) {
+      toast.error('필수 정보를 모두 입력해 주세요.');
+      return;
+    }
+    if (password !== confirm) {
+      toast.error('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    const res = await signup({ email, password, name, phoneNumber: phone });
+    if (res?.success) {
+      toast.success('회원가입이 완료됐어요.');
+      navigate({ to: '/login' });
+    }
   });
   const password = watch('password');
 
@@ -136,8 +151,9 @@ function RouteComponent() {
               <div className='space-y-2 pt-2'>
                 <Button
                   type='submit'
-                  className='h-10 w-full rounded-full bg-[#2ac1bc] text-[13px] font-semibold text-white hover:bg-[#1ba7a1]'>
-                  회원가입
+                  disabled={loading}
+                  className='h-10 w-full rounded-full bg-[#2ac1bc] text-[13px] font-semibold text-white hover:bg-[#1ba7a1] disabled:opacity-70'>
+                  {loading ? '처리 중…' : '회원가입'}
                 </Button>
                 <Button
                   type='button'

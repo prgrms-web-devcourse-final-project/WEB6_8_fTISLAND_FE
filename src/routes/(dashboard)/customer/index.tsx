@@ -3,11 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import { Heart, Home, ListFilter, Search, ShoppingBag, Star, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
 import { CustomerHeader } from './_components/CustomerHeader';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import AddressManage from '@/components/address/AddressManage';
 import StoreFilterSheet, { type StoreFilterValue } from '@/components/StoreFilterSheet';
+import { http } from '@/api/core';
 
 export const Route = createFileRoute('/(dashboard)/customer/')({
   component: RouteComponent,
@@ -17,22 +21,20 @@ interface HomeSearchForm {
   keyword: string;
 }
 
-const CATEGORIES = [
-  { label: '식료품', slug: 'groceries', color: 'bg-[#ECFFD9]', icon: ShoppingBag },
-  { label: '생활용품', slug: 'household', color: 'bg-[#FFECD9]', icon: Home },
-  { label: '디저트', slug: 'dessert', color: 'bg-[#E5F2FF]', icon: Star },
-  { label: '약국', slug: 'pharmacy', color: 'bg-[#FFE5F4]', icon: Heart },
-  { label: '문구', slug: 'stationery', color: 'bg-[#FFF7D9]', icon: User },
-  { label: '꽃집', slug: 'florist', color: 'bg-[#F0E5FF]', icon: ShoppingBag },
-  { label: '세탁', slug: 'laundry', color: 'bg-[#E3FFF7]', icon: Home },
-  { label: '펫샵', slug: 'petshop', color: 'bg-[#FFEADF]', icon: Heart },
-  { label: '전자기기', slug: 'electronics', color: 'bg-[#E5F2FF]', icon: Star },
-  { label: '반려동물', slug: 'pet-supplies', color: 'bg-[#FFE5F4]', icon: Heart },
-  { label: '베이커리', slug: 'bakery', color: 'bg-[#FFF7D9]', icon: User },
-  { label: '농산물', slug: 'produce', color: 'bg-[#ECFFD9]', icon: ShoppingBag },
-  { label: '해산물', slug: 'seafood', color: 'bg-[#E3FFF7]', icon: Home },
-  { label: '꽃배달', slug: 'flower-delivery', color: 'bg-[#F0E5FF]', icon: ShoppingBag },
-];
+type StoreCategory = { id: number; name: string };
+type ApiResponse<T> = { success: boolean; code: string; message: string; content: T };
+
+const ICON_POOL = [ShoppingBag, Home, Star, Heart, User] as const;
+const COLOR_POOL = [
+  'bg-[#ECFFD9]',
+  'bg-[#FFECD9]',
+  'bg-[#E5F2FF]',
+  'bg-[#FFE5F4]',
+  'bg-[#FFF7D9]',
+  'bg-[#F0E5FF]',
+  'bg-[#E3FFF7]',
+  'bg-[#FFEADF]',
+] as const;
 
 function RouteComponent() {
   const navigate = useNavigate();
@@ -47,10 +49,18 @@ function RouteComponent() {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<Partial<StoreFilterValue>>({});
+  const [addressOpen, setAddressOpen] = React.useState(false);
+  const [address, setAddress] = React.useState<string>('서울시 성북구 돌곶이로 27');
+
+  const { data: categoryResp, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['store-categories'],
+    queryFn: async () => await http.get<ApiResponse<StoreCategory[]>>('/api/v1/store-categories'),
+  });
+  const apiCategories = categoryResp?.content ?? [];
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc] shadow-[0_32px_80px_-40px_rgba(26,86,75,0.55)]'>
-      <CustomerHeader nickname='뭐든배달' address='서울시 성북구 돌곶이로 27' />
+      <CustomerHeader nickname='뭐든배달' address={address} onClickAddress={() => setAddressOpen(true)} />
 
       <main className='flex-1 space-y-5 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>
         <Card className='border-none bg-white shadow-sm'>
@@ -91,19 +101,36 @@ function RouteComponent() {
           </CardHeader>
           <CardContent>
             <div className='grid grid-cols-5 gap-2'>
-              {(showAllCategories ? CATEGORIES : CATEGORIES.slice(0, 9)).map(({ label, slug, color, icon: Icon }) => (
-                <button
-                  key={slug}
-                  type='button'
-                  onClick={() => navigate({ to: '/customer/category/$category', params: { category: slug } })}
-                  className='flex flex-col items-center gap-1.5 rounded-2xl bg-white p-2 text-[11px] font-semibold text-[#1b1b1b] shadow-[0_12px_32px_-24px_rgba(15,23,42,0.35)] transition-colors hover:bg-[#f5f7f9]'>
-                  <span className={`flex size-12 items-center justify-center rounded-full ${color}`}>
-                    <Icon className='size-5 text-[#1f6e6b]' aria-hidden />
-                  </span>
-                  {label}
-                </button>
-              ))}
-              {!showAllCategories && CATEGORIES.length > 10 && (
+              {categoriesLoading &&
+                Array.from({ length: 10 }).map((_, i) => (
+                  <div key={`skeleton-${i}`} className='flex flex-col items-center gap-1.5 rounded-2xl p-2'>
+                    <span className='flex size-12 animate-pulse items-center justify-center rounded-full bg-[#eef2f7]' />
+                    <span className='h-3 w-12 animate-pulse rounded bg-[#eef2f7]' />
+                  </div>
+                ))}
+              {!categoriesLoading &&
+                (showAllCategories ? apiCategories : apiCategories.slice(0, 9)).map((cat, idx) => {
+                  const Icon = ICON_POOL[idx % ICON_POOL.length];
+                  const color = COLOR_POOL[idx % COLOR_POOL.length];
+                  return (
+                    <button
+                      key={cat.id}
+                      type='button'
+                      onClick={() =>
+                        navigate({
+                          to: '/customer/category/$category',
+                          params: { category: encodeURIComponent(cat.name) },
+                        })
+                      }
+                      className='flex flex-col items-center gap-1.5 rounded-2xl bg-white p-2 text-[11px] font-semibold text-[#1b1b1b] shadow-[0_12px_32px_-24px_rgba(15,23,42,0.35)] transition-colors hover:bg-[#f5f7f9]'>
+                      <span className={`flex size-12 items-center justify-center rounded-full ${color}`}>
+                        <Icon className='size-5 text-[#1f6e6b]' aria-hidden />
+                      </span>
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              {!showAllCategories && apiCategories.length > 10 && (
                 <button
                   type='button'
                   onClick={() => setShowAllCategories(true)}
@@ -167,6 +194,22 @@ function RouteComponent() {
         onApply={(v) => setFilters(v)}
         onReset={() => setFilters({})}
       />
+
+      <Dialog open={addressOpen} onOpenChange={setAddressOpen}>
+        <DialogContent className='mx-auto w-[90%] max-w-[28rem] max-h-[85vh] overflow-hidden rounded-3xl border-0 p-0 shadow-2xl'>
+          <AddressManage
+            defaultOpen
+            asDialog
+            role='customer'
+            onSave={(v) => {
+              if (v.selectedAddress?.address) {
+                setAddress(v.selectedAddress.address);
+              }
+            }}
+            onClose={() => setAddressOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
