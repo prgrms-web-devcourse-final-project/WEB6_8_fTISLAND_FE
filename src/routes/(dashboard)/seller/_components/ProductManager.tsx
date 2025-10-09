@@ -13,6 +13,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2 } from 'lucide-react';
+import { useCreateProduct, useUpdateProduct } from '@/api/generated';
+import type { ProductCreateRequest } from '@/api/generated/model/productCreateRequest';
+import type { ProductUpdateRequest } from '@/api/generated/model/productUpdateRequest';
+import { toast } from 'sonner';
+import { useStoreDetailsStore } from '@/store/storeDetails';
+import { useDeleteProduct } from '@/api/generated';
 import { useForm } from 'react-hook-form';
 
 function useDialogKeyboardOffset(open: boolean) {
@@ -66,6 +72,7 @@ export type ProductFormValues = {
   price: string;
   quantity: string;
   thumbnail: string;
+  description: string;
 };
 
 interface ProductManagerProps {
@@ -125,15 +132,7 @@ function ProductRow({
         </div>
         <div className='flex items-center gap-2'>
           <EditProductDialog product={product} onSave={onUpdate} />
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon'
-            className='size-9 rounded-full border border-[#f87171]/60 text-[#f87171] hover:bg-[#f87171]/10'
-            onClick={() => onDelete(product.id)}>
-            <Trash2 className='size-4' aria-hidden />
-            <span className='sr-only'>상품 삭제</span>
-          </Button>
+          <DeleteProductButton productId={product.id} onDeleted={() => onDelete(product.id)} />
         </div>
       </CardContent>
     </Card>
@@ -157,22 +156,106 @@ function ThumbnailPreview({ src, name }: { src: string; name: string }) {
   );
 }
 
+function DeleteProductButton({ productId, onDeleted }: { productId: string; onDeleted(): void }) {
+  const [open, setOpen] = React.useState(false);
+  const deleteMutation = useDeleteProduct();
+  const selectedStoreId = useStoreDetailsStore((s) => s.selectedStore?.id) ?? 1;
+  const numericProductId = Number(productId);
+
+  return (
+    <>
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon'
+        className='size-9 rounded-full border border-[#f87171]/60 text-[#f87171] hover:bg-[#f87171]/10'
+        onClick={() => setOpen(true)}>
+        <Trash2 className='size-4' aria-hidden />
+        <span className='sr-only'>상품 삭제</span>
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className='max-w-sm rounded-2xl border-none bg-white p-6 shadow-[0_28px_72px_-28px_rgba(15,23,42,0.45)]'>
+          <DialogHeader>
+            <DialogTitle className='text-[16px] font-semibold text-[#1b1b1b]'>상품을 삭제할까요?</DialogTitle>
+            <DialogDescription className='text-[12px] text-[#6b7785]'>삭제 후에는 되돌릴 수 없어요.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className='pt-2'>
+            <Button
+              type='button'
+              variant='outline'
+              className='h-10 rounded-full border-[#cbd8e2] px-4 text-[13px] font-semibold text-[#1b1b1b] hover:bg-[#f8fafc]'
+              onClick={() => setOpen(false)}>
+              취소
+            </Button>
+            <Button
+              type='button'
+              disabled={deleteMutation.isPending}
+              aria-busy={deleteMutation.isPending}
+              className='h-10 rounded-full bg-[#ef4444] px-4 text-[13px] font-semibold text-white hover:bg-[#dc2626]'
+              onClick={() => {
+                if (!Number.isFinite(numericProductId)) {
+                  toast.error('올바르지 않은 상품 ID입니다.');
+                  return;
+                }
+                deleteMutation.mutate(
+                  { storeId: selectedStoreId, productId: numericProductId },
+                  {
+                    onSuccess: () => {
+                      toast.success('상품을 삭제했어요.');
+                      setOpen(false);
+                      onDeleted();
+                    },
+                    onError: () => {
+                      toast.error('상품 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.');
+                    },
+                  }
+                );
+              }}>
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function AddProductDialog({ onSave }: { onSave(product: ManagedProduct): void }) {
   const [open, setOpen] = React.useState(false);
   const keyboardOffset = useDialogKeyboardOffset(open);
   const form = useProductForm();
+  const createProductMutation = useCreateProduct();
+  const selectedStoreId = useStoreDetailsStore((s) => s.selectedStore?.id) ?? 1;
 
   const handleSubmit = form.handleSubmit((values) => {
-    const newProduct: ManagedProduct = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+    const req: ProductCreateRequest = {
       name: values.name,
+      description: values.description || '',
       price: Number(values.price.replace(/,/g, '')),
-      quantity: Number(values.quantity),
-      thumbnail: values.thumbnail,
+      imageUrl: values.thumbnail || '',
+      initialStock: Number(values.quantity),
     };
-    onSave(newProduct);
-    setOpen(false);
-    form.reset();
+    createProductMutation.mutate(
+      { storeId: selectedStoreId, data: req },
+      {
+        onSuccess: () => {
+          toast.success('상품이 등록되었어요.');
+          const newProduct: ManagedProduct = {
+            id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+            name: values.name,
+            price: Number(values.price.replace(/,/g, '')),
+            quantity: Number(values.quantity),
+            thumbnail: values.thumbnail,
+          };
+          onSave(newProduct);
+          setOpen(false);
+          form.reset();
+        },
+        onError: () => {
+          toast.error('상품 등록에 실패했어요. 잠시 후 다시 시도해 주세요.');
+        },
+      }
+    );
   });
 
   return (
@@ -214,6 +297,8 @@ function AddProductDialog({ onSave }: { onSave(product: ManagedProduct): void })
             </Button>
             <Button
               type='submit'
+              disabled={createProductMutation.isPending}
+              aria-busy={createProductMutation.isPending}
               className='h-10 rounded-full bg-[#1ba7a1] px-4 text-[13px] font-semibold text-white hover:bg-[#17928d]'>
               등록하기
             </Button>
@@ -239,19 +324,41 @@ function EditProductDialog({
       price: product.price.toString(),
       quantity: product.quantity.toString(),
       thumbnail: product.thumbnail,
+      description: '',
     },
   });
+  const updateMutation = useUpdateProduct();
+  const selectedStoreId = useStoreDetailsStore((s) => s.selectedStore?.id) ?? 1;
+  const numericProductId = Number(product.id);
 
   const handleSubmit = form.handleSubmit((values) => {
-    const updated: ManagedProduct = {
-      ...product,
+    const req: ProductUpdateRequest = {
       name: values.name,
       price: Number(values.price.replace(/,/g, '')),
-      quantity: Number(values.quantity),
-      thumbnail: values.thumbnail,
+      imageUrl: values.thumbnail || undefined,
+      description: values.description || undefined,
+      // description은 현재 폼에 없어 undefined 유지
     };
-    onSave(product.id, updated);
-    setOpen(false);
+    updateMutation.mutate(
+      { storeId: selectedStoreId, productId: numericProductId, data: req },
+      {
+        onSuccess: () => {
+          toast.success('상품 정보를 수정했어요.');
+          const updated: ManagedProduct = {
+            ...product,
+            name: values.name,
+            price: Number(values.price.replace(/,/g, '')),
+            quantity: Number(values.quantity),
+            thumbnail: values.thumbnail,
+          };
+          onSave(product.id, updated);
+          setOpen(false);
+        },
+        onError: () => {
+          toast.error('상품 수정에 실패했어요. 잠시 후 다시 시도해 주세요.');
+        },
+      }
+    );
   });
 
   return (
@@ -294,6 +401,8 @@ function EditProductDialog({
             </Button>
             <Button
               type='submit'
+              disabled={updateMutation.isPending}
+              aria-busy={updateMutation.isPending}
               className='h-10 rounded-full bg-[#1ba7a1] px-4 text-[13px] font-semibold text-white hover:bg-[#17928d]'>
               저장하기
             </Button>
@@ -356,13 +465,22 @@ function ProductFields({ form }: { form: ReturnType<typeof useProductForm> }) {
         </div>
       </div>
       <div className='space-y-1'>
-        <Label className='text-[12px] font-semibold text-[#1b1b1b]'>썸네일 이미지 URL (선택)</Label>
+        <Label className='text-[12px] font-semibold text-[#1b1b1b]'>상품 설명</Label>
+        <Input
+          placeholder='예) 원산지/구성/특징 등'
+          className='h-10 rounded-xl border-[#cbd8e2] text-[13px]'
+          {...register('description', { required: '상품 설명을 입력해 주세요.' })}
+        />
+        {errors.description ? <p className='text-[11px] text-[#f43f5e]'>{errors.description.message}</p> : null}
+      </div>
+      <div className='space-y-1'>
+        <Label className='text-[12px] font-semibold text-[#1b1b1b]'>썸네일 이미지 URL</Label>
         <Input
           placeholder='예) https://...'
           className='h-10 rounded-xl border-[#cbd8e2] text-[13px]'
-          {...register('thumbnail')}
+          {...register('thumbnail', { required: '썸네일 URL을 입력해 주세요.' })}
         />
-        <p className='text-[11px] text-[#6b7785]'>이미지가 없다면 자동으로 기본 이미지가 적용돼요.</p>
+        {errors.thumbnail ? <p className='text-[11px] text-[#f43f5e]'>{errors.thumbnail.message}</p> : null}
       </div>
     </>
   );
@@ -375,6 +493,7 @@ function useProductForm(options?: { defaultValues?: Partial<ProductFormValues> }
       price: options?.defaultValues?.price ?? '',
       quantity: options?.defaultValues?.quantity ?? '',
       thumbnail: options?.defaultValues?.thumbnail ?? '',
+      description: options?.defaultValues?.description ?? '',
     },
   });
 }

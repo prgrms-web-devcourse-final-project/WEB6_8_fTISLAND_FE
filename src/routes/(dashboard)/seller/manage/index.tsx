@@ -14,6 +14,8 @@ import type { StoreUpdateRequest } from '@/api/generated/model/storeUpdateReques
 import { toast } from 'sonner';
 import type { ManagedProduct } from '../_components/ProductManager';
 import { ProductManager } from '../_components/ProductManager';
+import { useSearchProductsInfinite } from '@/api/generated';
+import type { SearchProductsParams } from '@/api/generated/model/searchProductsParams';
 import type { ManagedOrder } from '../_components/OrderManager';
 import { OrderManager } from '../_components/OrderManager';
 import { SettlementManager } from '../_components/SettlementManager';
@@ -267,8 +269,7 @@ function RouteComponent() {
         ) : null}
 
         {activeTab === 'product' ? (
-          <ProductManager
-            products={products}
+          <ProductListWithInfinite
             onAdd={handleAddProduct}
             onUpdate={handleUpdateProduct}
             onDelete={handleDeleteProduct}
@@ -287,6 +288,70 @@ function RouteComponent() {
       </main>
       <SellerFooterNav active='manage' />
     </div>
+  );
+}
+function ProductListWithInfinite({
+  onAdd,
+  onUpdate,
+  onDelete,
+}: {
+  onAdd(product: ManagedProduct): void;
+  onUpdate(productId: string, product: ManagedProduct): void;
+  onDelete(productId: string): void;
+}) {
+  const storeId = 1; // 임시: 전역/URL로 대체 예정
+  const params: SearchProductsParams = { request: { limit: 10 } };
+  const query = useSearchProductsInfinite<any>(storeId, params, {
+    query: {
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
+      select: (data) => data,
+      staleTime: 10_000,
+      refetchOnWindowFocus: false,
+    },
+  });
+
+  const items: ManagedProduct[] = React.useMemo(() => {
+    const pages = (query.data?.pages ?? []) as any[];
+    const list = pages.flatMap((p) => (p?.data?.content?.products ?? []) as any[]);
+    return list.map((p) => ({
+      id: String(p.id ?? crypto.randomUUID?.() ?? Math.random()),
+      name: p.name ?? '',
+      price: Number(p.price ?? 0),
+      quantity: Number(p.stock?.quantity ?? 0),
+      thumbnail: p.imageUrl ?? '',
+    }));
+  }, [query.data]);
+
+  const sentinelRef = React.useRef<HTMLDivElement>(null);
+  const scrollRootRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    const root = document.querySelector('main');
+    scrollRootRef.current = (root as HTMLDivElement) || null;
+    const el = sentinelRef.current;
+    if (!root || !el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && query.hasNextPage && !query.isFetchingNextPage) {
+            query.fetchNextPage();
+          }
+        });
+      },
+      { root: scrollRootRef.current, rootMargin: '120px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
+
+  return (
+    <>
+      <ProductManager products={items} onAdd={onAdd} onUpdate={onUpdate} onDelete={onDelete} />
+      <div ref={sentinelRef} />
+      {query.isFetchingNextPage ? (
+        <p className='py-2 text-center text-[12px] text-white/80'>상품을 더 불러오는 중…</p>
+      ) : null}
+    </>
   );
 }
 
