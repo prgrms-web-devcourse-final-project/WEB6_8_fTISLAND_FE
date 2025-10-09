@@ -6,6 +6,9 @@ import { MapPin, Truck } from 'lucide-react';
 import { SellerHeader } from './_components/SellerHeader';
 import { Switch } from '@/components/ui/switch';
 import { SellerFooterNav } from './_components/SellerFooterNav';
+import { useToggleStoreStatus } from '@/api/generated';
+import { useAuthStore } from '@/store/auth';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/(dashboard)/seller/')({
   component: RouteComponent,
@@ -85,6 +88,8 @@ const SELLER_PROFILE = {
 function RouteComponent() {
   const [orderTab, setOrderTab] = React.useState<OrderTabKey>('accept');
   const [isOpen, setIsOpen] = React.useState(true);
+  const storeId = useAuthStore((s) => s.currentActiveProfileId);
+  const toggleStoreStatusMutation = useToggleStoreStatus();
 
   const formatAmount = React.useCallback((amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount);
@@ -100,7 +105,7 @@ function RouteComponent() {
         onSettingsClick={() => console.log('seller settings open')}
       />
 
-      <main className='flex-1 space-y-5 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-28 pt-6 outline outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-32 sm:pt-7'>
+      <main className='flex-1 space-y-5 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-28 pt-6 outline-[#2ac1bc]/15 ring-1 ring-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-32 sm:pt-7'>
         <Card className='border-none bg-white shadow-sm'>
           <CardContent className='flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between'>
             <div className='inline-flex flex-1 items-center justify-between rounded-full bg-[#e9f6f5] p-1 text-[13px] font-semibold text-[#1b1b1b] sm:flex-none sm:text-sm'>
@@ -125,7 +130,29 @@ function RouteComponent() {
               <div className='flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-[#1b1b1b] shadow-sm sm:text-sm'>
                 <Switch
                   checked={isOpen}
-                  onCheckedChange={setIsOpen}
+                  onCheckedChange={(next) => {
+                    const prev = isOpen;
+                    setIsOpen(next);
+                    if (!storeId) {
+                      setIsOpen(prev);
+                      toast.error('상점 정보를 확인할 수 없어요. 다시 로그인해 주세요.');
+                      return;
+                    }
+                    toggleStoreStatusMutation.mutate(
+                      { storeId },
+                      {
+                        onSuccess: () => {
+                          toast.success(next ? '영업 상태로 전환됐어요.' : '휴업 상태로 전환됐어요.');
+                        },
+                        onError: () => {
+                          setIsOpen(prev);
+                          toast.error('상태 변경에 실패했어요. 잠시 후 다시 시도해 주세요.');
+                        },
+                      }
+                    );
+                  }}
+                  disabled={toggleStoreStatusMutation.isPending}
+                  aria-busy={toggleStoreStatusMutation.isPending}
                   className='data-[state=checked]:bg-[#1ba7a1] data-[state=unchecked]:bg-[#cbd8e2]'
                 />
                 <span className='flex flex-col leading-tight'>

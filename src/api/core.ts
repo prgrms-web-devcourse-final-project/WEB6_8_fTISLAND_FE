@@ -34,10 +34,10 @@ function createApiClient(): AxiosInstance {
   // Request interceptor: attach bearer token later when available
   instance.interceptors.request.use((config) => {
     const token = getAccessToken();
-    if (token) {
-      config.headers = config.headers ?? {};
-      (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-    }
+    // if (token) {
+    //   config.headers = config.headers ?? {};
+    //   (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    // }
     return config;
   });
 

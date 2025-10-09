@@ -27,6 +27,7 @@ import { Route as dashboardRiderLayoutRouteImport } from './routes/(dashboard)/r
 import { Route as dashboardCustomerLayoutRouteImport } from './routes/(dashboard)/customer/_layout'
 import { Route as dashboardSellerMypageIndexRouteImport } from './routes/(dashboard)/seller/mypage/index'
 import { Route as dashboardSellerManageIndexRouteImport } from './routes/(dashboard)/seller/manage/index'
+import { Route as dashboardSellerCreateStoreIndexRouteImport } from './routes/(dashboard)/seller/create-store/index'
 import { Route as dashboardRiderSettlementIndexRouteImport } from './routes/(dashboard)/rider/settlement/index'
 import { Route as dashboardRiderMypageIndexRouteImport } from './routes/(dashboard)/rider/mypage/index'
 import { Route as dashboardRiderHistoryIndexRouteImport } from './routes/(dashboard)/rider/history/index'
@@ -140,6 +141,12 @@ const dashboardSellerManageIndexRoute =
   dashboardSellerManageIndexRouteImport.update({
     id: '/manage/',
     path: '/manage/',
+    getParentRoute: () => dashboardSellerRoute,
+  } as any)
+const dashboardSellerCreateStoreIndexRoute =
+  dashboardSellerCreateStoreIndexRouteImport.update({
+    id: '/create-store/',
+    path: '/create-store/',
     getParentRoute: () => dashboardSellerRoute,
   } as any)
 const dashboardRiderSettlementIndexRoute =
@@ -256,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/rider/history': typeof dashboardRiderHistoryIndexRoute
   '/rider/mypage': typeof dashboardRiderMypageIndexRoute
   '/rider/settlement': typeof dashboardRiderSettlementIndexRoute
+  '/seller/create-store': typeof dashboardSellerCreateStoreIndexRoute
   '/seller/manage': typeof dashboardSellerManageIndexRoute
   '/seller/mypage': typeof dashboardSellerMypageIndexRoute
   '/rider/orders/$orderId/detail': typeof dashboardRiderOrdersOrderIdDetailRoute
@@ -286,6 +294,7 @@ export interface FileRoutesByTo {
   '/rider/history': typeof dashboardRiderHistoryIndexRoute
   '/rider/mypage': typeof dashboardRiderMypageIndexRoute
   '/rider/settlement': typeof dashboardRiderSettlementIndexRoute
+  '/seller/create-store': typeof dashboardSellerCreateStoreIndexRoute
   '/seller/manage': typeof dashboardSellerManageIndexRoute
   '/seller/mypage': typeof dashboardSellerMypageIndexRoute
   '/rider/orders/$orderId/detail': typeof dashboardRiderOrdersOrderIdDetailRoute
@@ -323,6 +332,7 @@ export interface FileRoutesById {
   '/(dashboard)/rider/history/': typeof dashboardRiderHistoryIndexRoute
   '/(dashboard)/rider/mypage/': typeof dashboardRiderMypageIndexRoute
   '/(dashboard)/rider/settlement/': typeof dashboardRiderSettlementIndexRoute
+  '/(dashboard)/seller/create-store/': typeof dashboardSellerCreateStoreIndexRoute
   '/(dashboard)/seller/manage/': typeof dashboardSellerManageIndexRoute
   '/(dashboard)/seller/mypage/': typeof dashboardSellerMypageIndexRoute
   '/(dashboard)/rider/orders/$orderId/detail': typeof dashboardRiderOrdersOrderIdDetailRoute
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/rider/history'
     | '/rider/mypage'
     | '/rider/settlement'
+    | '/seller/create-store'
     | '/seller/manage'
     | '/seller/mypage'
     | '/rider/orders/$orderId/detail'
@@ -388,6 +399,7 @@ export interface FileRouteTypes {
     | '/rider/history'
     | '/rider/mypage'
     | '/rider/settlement'
+    | '/seller/create-store'
     | '/seller/manage'
     | '/seller/mypage'
     | '/rider/orders/$orderId/detail'
@@ -424,6 +436,7 @@ export interface FileRouteTypes {
     | '/(dashboard)/rider/history/'
     | '/(dashboard)/rider/mypage/'
     | '/(dashboard)/rider/settlement/'
+    | '/(dashboard)/seller/create-store/'
     | '/(dashboard)/seller/manage/'
     | '/(dashboard)/seller/mypage/'
     | '/(dashboard)/rider/orders/$orderId/detail'
@@ -582,6 +595,13 @@ declare module '@tanstack/react-router' {
       path: '/manage'
       fullPath: '/seller/manage'
       preLoaderRoute: typeof dashboardSellerManageIndexRouteImport
+      parentRoute: typeof dashboardSellerRoute
+    }
+    '/(dashboard)/seller/create-store/': {
+      id: '/(dashboard)/seller/create-store/'
+      path: '/create-store'
+      fullPath: '/seller/create-store'
+      preLoaderRoute: typeof dashboardSellerCreateStoreIndexRouteImport
       parentRoute: typeof dashboardSellerRoute
     }
     '/(dashboard)/rider/settlement/': {
@@ -755,6 +775,7 @@ const dashboardRiderRouteWithChildren = dashboardRiderRoute._addFileChildren(
 interface dashboardSellerRouteChildren {
   dashboardSellerLayoutRoute: typeof dashboardSellerLayoutRoute
   dashboardSellerIndexRoute: typeof dashboardSellerIndexRoute
+  dashboardSellerCreateStoreIndexRoute: typeof dashboardSellerCreateStoreIndexRoute
   dashboardSellerManageIndexRoute: typeof dashboardSellerManageIndexRoute
   dashboardSellerMypageIndexRoute: typeof dashboardSellerMypageIndexRoute
   dashboardSellerManageSettlementIdDetailRoute: typeof dashboardSellerManageSettlementIdDetailRoute
@@ -763,6 +784,7 @@ interface dashboardSellerRouteChildren {
 const dashboardSellerRouteChildren: dashboardSellerRouteChildren = {
   dashboardSellerLayoutRoute: dashboardSellerLayoutRoute,
   dashboardSellerIndexRoute: dashboardSellerIndexRoute,
+  dashboardSellerCreateStoreIndexRoute: dashboardSellerCreateStoreIndexRoute,
   dashboardSellerManageIndexRoute: dashboardSellerManageIndexRoute,
   dashboardSellerMypageIndexRoute: dashboardSellerMypageIndexRoute,
   dashboardSellerManageSettlementIdDetailRoute:
