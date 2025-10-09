@@ -3,25 +3,33 @@ import { Card, CardContent } from '@/components/ui/card';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { SellerHeader } from '../../_components/SellerHeader';
 import { FOOTER_ITEMS, STORE_INFO } from '../index';
-import { getSettlementById } from '../_data/settlements';
+import { useGetDaySettlements, useGetWeekSettlements, useGetMonthSettlements } from '@/api/generated';
 
-export const Route = createFileRoute('/(dashboard)/seller/manage/$settlementId/detail')({
-  loader: ({ params }) => {
-    const settlement = getSettlementById(params.settlementId);
-    if (!settlement) {
-      throw redirect({ to: '/seller/manage', search: { tab: 'settlement' } });
-    }
-    return { settlement };
-  },
-  component: RouteComponent,
-});
+export const Route = createFileRoute('/(dashboard)/seller/manage/$settlementId/detail')({ component: RouteComponent });
 
 function RouteComponent() {
-  const { settlement } = Route.useLoaderData();
+  const { settlementId } = Route.useParams();
+  const storeId = 1; // TODO: 전역/URL로 대체
+  // 세 가지 데이터 소스에서 먼저 일간 → 주간 → 월간 순으로 조회
+  const dayQuery = useGetDaySettlements(storeId, { query: { staleTime: 10_000, refetchOnWindowFocus: false } });
+  const weekQuery = useGetWeekSettlements(storeId, { query: { staleTime: 10_000, refetchOnWindowFocus: false } });
+  const monthQuery = useGetMonthSettlements(storeId, { query: { staleTime: 10_000, refetchOnWindowFocus: false } });
+  const found = React.useMemo(() => {
+    const pick = (data: any) =>
+      (
+        (data?.data?.content ?? []) as Array<{
+          startDate?: string;
+          totalAmount?: number;
+          totalPlatformFee?: number;
+          settledAmount?: number;
+        }>
+      ).find((i) => i.startDate === settlementId);
+    return pick(dayQuery.data) ?? pick(weekQuery.data) ?? pick(monthQuery.data);
+  }, [dayQuery.data, weekQuery.data, monthQuery.data, settlementId]);
 
-  const netAmount = settlement.amount;
-  const sales = settlement.sales;
-  const commission = settlement.commission;
+  const sales = Number(found?.totalAmount ?? 0);
+  const commission = Number(found?.totalPlatformFee ?? 0);
+  const netAmount = Number(found?.settledAmount ?? 0);
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc] text-white'>
@@ -37,8 +45,19 @@ function RouteComponent() {
         <Card className='border-none bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)]'>
           <CardContent className='space-y-6 px-4 py-6'>
             <header className='space-y-2'>
-              <p className='text-[12px] font-semibold text-[#6b7785]'>{settlement.settledAt}</p>
-              <h1 className='text-[1.75rem] font-extrabold text-[#1b1b1b]'>{settlement.title}</h1>
+              <p className='text-[12px] font-semibold text-[#6b7785]'>{settlementId}</p>
+              <h1 className='text-[1.75rem] font-extrabold text-[#1b1b1b]'>
+                {(() => {
+                  try {
+                    const [y, m, d] = (settlementId || '').split('-');
+                    if (!isNaN(Number(d))) return `${y}년-${m}월-${d}일 정산 내역`;
+                    // 월간: MM만 사용
+                    return `${m}월 월간 정산 내역`;
+                  } catch {
+                    return `${settlementId} 정산 내역`;
+                  }
+                })()}
+              </h1>
               <p className='text-[13px] text-[#6b7785]'>정산 금액은 매출 합계에서 수수료를 제외한 실제 입금액입니다.</p>
             </header>
 
@@ -71,9 +90,6 @@ function RouteComponent() {
                 className='h-10 flex-1 rounded-full border-[#cbd8e2] text-[13px] font-semibold text-[#1b1b1b] hover:bg-[#f8fafc]'
                 onClick={() => window.history.back()}>
                 목록으로 돌아가기
-              </Button>
-              <Button className='h-10 flex-1 rounded-full bg-[#1ba7a1] text-[13px] font-semibold text-white hover:bg-[#17928d]'>
-                증빙 다운로드
               </Button>
             </div>
           </CardContent>
