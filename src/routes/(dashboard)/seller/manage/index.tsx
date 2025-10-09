@@ -3,9 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Home, Package, Receipt, ShieldAlert, User } from 'lucide-react';
 import { SellerHeader } from '../_components/SellerHeader';
+import { useStoreDetailsStore } from '@/store/storeDetails';
+import { useDeleteStore, useToggleStoreStatus, useUpdateStore } from '@/api/generated';
+import type { StoreUpdateRequest } from '@/api/generated/model/storeUpdateRequest';
+import { toast } from 'sonner';
 import type { ManagedProduct } from '../_components/ProductManager';
 import { ProductManager } from '../_components/ProductManager';
 import type { ManagedOrder } from '../_components/OrderManager';
@@ -136,12 +142,29 @@ const INITIAL_ORDERS: ManagedOrder[] = [
 export const SETTLEMENTS = initialSettlements;
 
 function RouteComponent() {
+  const storeId = 1; // 임시 하드코딩. 추후 URL/상태 기반으로 교체
+  const toggleStoreStatusMutation = useToggleStoreStatus();
+  const deleteStoreMutation = useDeleteStore();
+  const updateStoreMutation = useUpdateStore({
+    mutation: {
+      onSuccess: () => toast.success('상점 정보가 저장되었어요.'),
+      onError: () => toast.error('저장에 실패했어요. 잠시 후 다시 시도해 주세요.'),
+    },
+  });
+
+  const handleUpdateField = React.useCallback(
+    (partial: StoreUpdateRequest) => {
+      updateStoreMutation.mutate({ storeId, data: partial });
+    },
+    [storeId, updateStoreMutation]
+  );
   const navigate = useNavigate();
   const { tab: initialTab } = Route.useSearch();
   const [isOpen, setIsOpen] = React.useState(STORE_INFO.status);
   const [activeTab, setActiveTab] = React.useState<TabKey>(initialTab);
   const [products, setProducts] = React.useState<ManagedProduct[]>(INITIAL_PRODUCTS);
   const [orders] = React.useState<ManagedOrder[]>(INITIAL_ORDERS);
+  const selectedStore = useStoreDetailsStore((s) => s.selectedStore);
 
   const handleAddProduct = React.useCallback((product: ManagedProduct) => {
     setProducts((prev) => [product, ...prev]);
@@ -155,6 +178,22 @@ function RouteComponent() {
     setProducts((prev) => prev.filter((item) => item.id !== productId));
   }, []);
 
+  const handleDeleteStore = React.useCallback(() => {
+    deleteStoreMutation.mutate(
+      { storeId },
+      {
+        onSuccess: () => {
+          useStoreDetailsStore.getState().clear();
+          toast.success('상점이 삭제되었어요.');
+          navigate({ to: '/seller' });
+        },
+        onError: () => {
+          toast.error('상점 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.');
+        },
+      }
+    );
+  }, [deleteStoreMutation, storeId, navigate]);
+
   const setTab = React.useCallback(
     (next: TabKey) => {
       setActiveTab(next);
@@ -167,10 +206,10 @@ function RouteComponent() {
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc] text-white'>
       <SellerHeader
         nickname='김사장'
-        storeName={STORE_INFO.name}
-        address={STORE_INFO.address}
-        profileImageUrl=''
-        onSettingsClick={() => console.log('seller header settings')}
+        storeName={selectedStore?.name || STORE_INFO.name}
+        address={selectedStore?.roadAddr || STORE_INFO.address}
+        description={selectedStore?.description}
+        profileImageUrl={selectedStore?.imageUrl || ''}
       />
       <header className='px-4 pb-6 pt-4 sm:px-6'>
         <nav className='grid grid-cols-4 gap-3 text-[11px] font-semibold sm:text-[12px]'>
@@ -202,8 +241,30 @@ function RouteComponent() {
         </nav>
       </header>
 
-      <main className='flex-1 space-y-4 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-28 pt-6 text-[#1b1b1b] outline outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-5 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-32 sm:pt-7'>
-        {activeTab === 'store' ? <StoreManagementCard isOpen={isOpen} onToggle={setIsOpen} /> : null}
+      <main className='flex-1 space-y-4 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-28 pt-6 text-[#1b1b1b] outline outline-[#2ac1bc]/15 sm:space-y-5 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-32 sm:pt-7'>
+        {activeTab === 'store' ? (
+          <StoreManagementCard
+            isOpen={isOpen}
+            onToggle={(next) => {
+              const prev = isOpen;
+              setIsOpen(next);
+              toggleStoreStatusMutation.mutate(
+                { storeId },
+                {
+                  onSuccess: () => {
+                    toast.success(next ? '영업 상태로 전환됐어요.' : '휴업 상태로 전환됐어요.');
+                  },
+                  onError: () => {
+                    setIsOpen(prev);
+                    toast.error('상태 변경에 실패했어요. 잠시 후 다시 시도해 주세요.');
+                  },
+                }
+              );
+            }}
+            onUpdateField={handleUpdateField}
+            onDelete={handleDeleteStore}
+          />
+        ) : null}
 
         {activeTab === 'product' ? (
           <ProductManager
@@ -229,7 +290,35 @@ function RouteComponent() {
   );
 }
 
-function StoreManagementCard({ isOpen, onToggle }: { isOpen: boolean; onToggle(value: boolean): void }) {
+function StoreManagementCard({
+  isOpen,
+  onToggle,
+  onUpdateField,
+  onDelete,
+}: {
+  isOpen: boolean;
+  onToggle(value: boolean): void;
+  onUpdateField(partial: StoreUpdateRequest): void;
+  onDelete(): void;
+}) {
+  const selected = useStoreDetailsStore.getState().selectedStore;
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editField, setEditField] = React.useState<'name' | 'roadAddr' | 'description' | null>(null);
+  const [editLabel, setEditLabel] = React.useState('');
+  const [editValue, setEditValue] = React.useState('');
+
+  const startEdit = React.useCallback((field: 'name' | 'roadAddr' | 'description', label: string, value: string) => {
+    setEditField(field);
+    setEditLabel(label);
+    setEditValue(value ?? '');
+    setEditOpen(true);
+  }, []);
+
+  const saveEdit = React.useCallback(() => {
+    if (!editField) return;
+    onUpdateField({ [editField]: editValue } as StoreUpdateRequest);
+    setEditOpen(false);
+  }, [editField, editValue, onUpdateField]);
   return (
     <Card className='border-none bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)]'>
       <CardHeader className='pb-3'>
@@ -239,9 +328,21 @@ function StoreManagementCard({ isOpen, onToggle }: { isOpen: boolean; onToggle(v
         </CardDescription>
       </CardHeader>
       <CardContent className='space-y-5'>
-        <InfoRow label='상점 이름' value={STORE_INFO.name} onEdit={() => console.log('edit name')} />
-        <InfoRow label='상점 주소' value={STORE_INFO.address} onEdit={() => console.log('edit address')} />
-        <InfoRow label='상점 연락처' value={STORE_INFO.phone} onEdit={() => console.log('edit phone')} />
+        <InfoRow
+          label='상점 이름'
+          value={selected?.name || ''}
+          onEdit={() => startEdit('name', '상점 이름', selected?.name || '')}
+        />
+        <InfoRow
+          label='상점 주소'
+          value={selected?.roadAddr || ''}
+          onEdit={() => startEdit('roadAddr', '상점 주소', selected?.roadAddr || '')}
+        />
+        <InfoRow
+          label='상점 소개'
+          value={selected?.description || ''}
+          onEdit={() => startEdit('description', '상점 소개', selected?.description || '')}
+        />
         <div className='flex flex-col gap-3 rounded-2xl bg-[#f5f7f9] px-3 py-3'>
           <p className='text-[13px] font-semibold text-[#1b1b1b]'>상점 영업 상태</p>
           <div className='flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-sm'>
@@ -265,7 +366,34 @@ function StoreManagementCard({ isOpen, onToggle }: { isOpen: boolean; onToggle(v
             </Label>
           </div>
         </div>
+        <div className='flex justify-end pt-1'>
+          <DeleteStoreButton onDelete={onDelete} />
+        </div>
       </CardContent>
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className='mx-auto w-[90%] max-w-[26rem] rounded-2xl border-0 p-0 shadow-2xl'>
+          <DialogHeader className='px-5 pb-3 pt-4'>
+            <DialogTitle className='text-[15px] font-semibold text-[#1b1b1b]'>{editLabel} 수정</DialogTitle>
+          </DialogHeader>
+          <div className='space-y-3 px-5 pb-5'>
+            <Label className='text-[12px] font-semibold'>{editLabel}</Label>
+            <Input
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
+              autoFocus
+            />
+            <div className='flex justify-end gap-2 pt-1'>
+              <Button type='button' variant='outline' className='h-9 rounded-full' onClick={() => setEditOpen(false)}>
+                취소
+              </Button>
+              <Button type='button' className='h-9 rounded-full bg-[#1ba7a1] text-white' onClick={saveEdit}>
+                저장
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -288,5 +416,44 @@ function InfoRow({ label, value, onEdit }: { label: string; value: string; onEdi
         </Button>
       ) : null}
     </div>
+  );
+}
+
+function DeleteStoreButton({ onDelete }: { onDelete(): void }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      <Button
+        type='button'
+        variant='outline'
+        className='h-9 rounded-full border-[#f87171] px-3 text-[12px] font-semibold text-[#f87171] hover:bg-[#f87171]/10'
+        onClick={() => setOpen(true)}>
+        상점 삭제
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className='mx-auto w-[90%] max-w-[26rem] rounded-2xl border-0 p-0 shadow-2xl'>
+          <DialogHeader className='px-5 pb-3 pt-4'>
+            <DialogTitle className='text-[15px] font-semibold text-[#1b1b1b]'>정말 삭제하시겠습니까?</DialogTitle>
+          </DialogHeader>
+          <div className='space-y-3 px-5 pb-5'>
+            <p className='text-[12px] text-[#6b7785]'>삭제 후에는 되돌릴 수 없습니다.</p>
+            <div className='flex justify-end gap-2 pt-1'>
+              <Button type='button' variant='outline' className='h-9 rounded-full' onClick={() => setOpen(false)}>
+                취소
+              </Button>
+              <Button
+                type='button'
+                className='h-9 rounded-full bg-[#ef4444] text-white hover:bg-[#dc2626]'
+                onClick={() => {
+                  onDelete();
+                  setOpen(false);
+                }}>
+                삭제
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
