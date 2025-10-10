@@ -108,9 +108,9 @@ function RouteComponent() {
     console.log('seller profile submit', data);
   }, []);
 
-  const onDraftSave = useCallback((data: SellerProfileFormValues) => {
-    console.log('seller profile draft', data);
-  }, []);
+  // const onDraftSave = useCallback((data: SellerProfileFormValues) => {
+  //   console.log('seller profile draft', data);
+  // }, []);
 
   const { ref: registerBrandLogoRef, ...brandLogoRegister } = register('brandLogo');
 

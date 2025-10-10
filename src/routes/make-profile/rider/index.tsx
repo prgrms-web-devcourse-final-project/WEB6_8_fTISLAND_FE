@@ -1,21 +1,9 @@
-import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createFileRoute } from '@tanstack/react-router';
-import {
-  CalendarClock,
-  Camera,
-  Clock4,
-  IdCard,
-  MapPin,
-  Navigation,
-  Phone,
-  ShieldCheck,
-  Upload,
-  Users,
-} from 'lucide-react';
+import { Camera, Clock4, IdCard, MapPin, Phone, ShieldCheck, Upload, Users } from 'lucide-react';
 import { useCallback, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -71,9 +59,9 @@ function RouteComponent() {
     console.log('rider profile submit', data);
   }, []);
 
-  const onSaveDraft = useCallback((data: RiderProfileFormValues) => {
-    console.log('rider profile draft', data);
-  }, []);
+  // const onSaveDraft = useCallback((data: RiderProfileFormValues) => {
+  //   console.log('rider profile draft', data);
+  // }, []);
 
   const { ref: registerProfileImageRef, ...profileImageRegister } = register('profileImage');
 

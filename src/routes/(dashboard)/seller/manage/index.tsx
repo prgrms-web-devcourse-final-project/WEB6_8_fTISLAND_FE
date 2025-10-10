@@ -164,7 +164,7 @@ function RouteComponent() {
   const { tab: initialTab } = Route.useSearch();
   const [isOpen, setIsOpen] = React.useState(STORE_INFO.status);
   const [activeTab, setActiveTab] = React.useState<TabKey>(initialTab);
-  const [products, setProducts] = React.useState<ManagedProduct[]>(INITIAL_PRODUCTS);
+  const [_, setProducts] = React.useState<ManagedProduct[]>(INITIAL_PRODUCTS);
   const [orders] = React.useState<ManagedOrder[]>(INITIAL_ORDERS);
   const selectedStore = useStoreDetailsStore((s) => s.selectedStore);
 

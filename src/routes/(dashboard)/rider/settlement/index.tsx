@@ -42,8 +42,6 @@ function RouteComponent() {
   const pendingAmount = 38000; // 정산 대기 금액
   const allCompletedSettlement = 3456000; // 전체 기간 정산 완료 금액
 
-  const items = allItems[period];
-
   return (
     <RiderPageLayout>
       <div className='space-y-4'>

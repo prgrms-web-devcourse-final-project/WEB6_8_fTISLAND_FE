@@ -19,7 +19,6 @@ import {
   useToggleStoreStatus,
 } from '@/api/generated';
 import type { OrderResponseStatus } from '@/api/generated/model/orderResponseStatus';
-import { useAuthStore } from '@/store/auth';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStoreDetailsStore } from '@/store/storeDetails';
@@ -27,35 +26,6 @@ import { useStoreDetailsStore } from '@/store/storeDetails';
 export const Route = createFileRoute('/(dashboard)/seller/')({
   component: RouteComponent,
 });
-
-// 데모용 PENDING_ORDERS는 API 연동으로 대체되었습니다.
-
-const ACTIVE_ORDERS = [
-  {
-    id: 'ORD-2025',
-    menu: '소담 도시락',
-    quantity: 2,
-    request: '젓가락 2개만 주세요.',
-    address: '성북구 동소문동 1가 23-7',
-    status: '준비 중' as const,
-  },
-  {
-    id: 'ORD-2024',
-    menu: '오늘의 샐러드 박스',
-    quantity: 1,
-    request: '드레싱 따로 포장 부탁드려요.',
-    address: '성북구 안암동 3가 55-2',
-    status: '배달 중' as const,
-  },
-  {
-    id: 'ORD-2022',
-    menu: '따끈한 수제 떡볶이',
-    quantity: 2,
-    request: '',
-    address: '종로구 창신동 202-11',
-    status: '배정 완료' as const,
-  },
-];
 
 type OrderTabKey = 'accept' | 'status';
 
@@ -75,7 +45,7 @@ const SELLER_PROFILE = {
 function RouteComponent() {
   const [orderTab, setOrderTab] = React.useState<OrderTabKey>('accept');
   const [isOpen, setIsOpen] = React.useState(true);
-  const storeId = useAuthStore((s) => s.currentActiveProfileId);
+  // const storeId = useAuthStore((s) => s.currentActiveProfileId);
   const toggleStoreStatusMutation = useToggleStoreStatus();
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -261,28 +231,28 @@ function RouteComponent() {
   );
 }
 
-type ActiveStatus = (typeof ACTIVE_ORDERS)[number]['status'];
+// type ActiveStatus = (typeof ACTIVE_ORDERS)[number]['status'];
 
-function StatusBadge({ status }: { status: ActiveStatus }) {
-  const { label, className } = React.useMemo(() => {
-    switch (status) {
-      case '준비 중':
-        return { label: '준비 중', className: 'bg-[#ffe8cc] text-[#ad7b00]' };
-      case '배달 중':
-        return { label: '배달 중', className: 'bg-[#cbeffd] text-[#0f5b78]' };
-      case '배정 완료':
-        return { label: '배정 완료', className: 'bg-[#d8ffe7] text-[#1f6e6b]' };
-      default:
-        return { label: status, className: 'bg-[#e2e8f0] text-[#475569]' };
-    }
-  }, [status]);
+// function StatusBadge({ status }: { status: ActiveStatus }) {
+//   const { label, className } = React.useMemo(() => {
+//     switch (status) {
+//       case '준비 중':
+//         return { label: '준비 중', className: 'bg-[#ffe8cc] text-[#ad7b00]' };
+//       case '배달 중':
+//         return { label: '배달 중', className: 'bg-[#cbeffd] text-[#0f5b78]' };
+//       case '배정 완료':
+//         return { label: '배정 완료', className: 'bg-[#d8ffe7] text-[#1f6e6b]' };
+//       default:
+//         return { label: status, className: 'bg-[#e2e8f0] text-[#475569]' };
+//     }
+//   }, [status]);
 
-  return (
-    <span className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${className}`}>
-      {label}
-    </span>
-  );
-}
+//   return (
+//     <span className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${className}`}>
+//       {label}
+//     </span>
+//   );
+// }
 
 function AcceptedOrdersSection({
   query,

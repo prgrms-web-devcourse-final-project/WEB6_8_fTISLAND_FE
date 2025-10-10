@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { SellerHeader } from '../../_components/SellerHeader';
 import { FOOTER_ITEMS, STORE_INFO } from '../index';
 import { useGetDaySettlements, useGetWeekSettlements, useGetMonthSettlements } from '@/api/generated';
+import { useMemo } from 'react';
 
 export const Route = createFileRoute('/(dashboard)/seller/manage/$settlementId/detail')({ component: RouteComponent });
 
@@ -14,7 +15,7 @@ function RouteComponent() {
   const dayQuery = useGetDaySettlements(storeId, { query: { staleTime: 10_000, refetchOnWindowFocus: false } });
   const weekQuery = useGetWeekSettlements(storeId, { query: { staleTime: 10_000, refetchOnWindowFocus: false } });
   const monthQuery = useGetMonthSettlements(storeId, { query: { staleTime: 10_000, refetchOnWindowFocus: false } });
-  const found = React.useMemo(() => {
+  const found = useMemo(() => {
     const pick = (data: any) =>
       (
         (data?.data?.content ?? []) as Array<{

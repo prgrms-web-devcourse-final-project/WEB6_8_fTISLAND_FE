@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Bell, ShoppingBag } from 'lucide-react';

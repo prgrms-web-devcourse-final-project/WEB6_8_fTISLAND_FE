@@ -54,7 +54,7 @@ function RouteComponent() {
         </Card>
 
         <div className='max-h-[calc(100dvh-320px)] space-y-3 overflow-y-auto sm:max-h-[calc(100dvh-340px)]'>
-          {filtered.map((s, idx) => (
+          {filtered.map((s) => (
             <Card
               key={s.id}
               className='cursor-pointer border-none bg-white shadow-sm'

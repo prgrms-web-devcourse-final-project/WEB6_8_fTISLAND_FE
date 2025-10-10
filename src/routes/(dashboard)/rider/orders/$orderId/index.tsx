@@ -15,11 +15,6 @@ type OrderStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 function RouteComponent() {
   const { orderId } = Route.useParams();
   const [status, setStatus] = React.useState<OrderStatus>('IN_PROGRESS');
-  const STATUS_LABEL: Record<OrderStatus, string> = {
-    PENDING: '픽업 대기',
-    IN_PROGRESS: '배달 중',
-    COMPLETED: '완료',
-  };
 
   // 스태틱 예시 데이터
   const store = { name: '골목 마트', address: '서울 성북구 동소문로25길 12 1층', phone: '02-123-4567' };

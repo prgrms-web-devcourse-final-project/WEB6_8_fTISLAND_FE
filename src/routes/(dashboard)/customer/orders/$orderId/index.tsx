@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
-import { Heart, Home, ListFilter, Search, User } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,13 +22,12 @@ export const Route = createFileRoute('/(dashboard)/customer/orders/$orderId/')({
 });
 
 function RouteComponent() {
-  const navigate = useNavigate();
   const { orderId } = Route.useParams();
   const { status: statusFromSearch } = Route.useSearch();
   const [status, setStatus] = React.useState<'pending' | 'accepted' | 'delivering' | 'completed'>(
     (statusFromSearch as any) === 'completed' ? 'completed' : 'pending'
   );
-  const [riderAssigned, setRiderAssigned] = React.useState(false);
+  const [riderAssigned, _setRiderAssigned] = React.useState(false);
   const [openCancel, setOpenCancel] = React.useState(false);
 
   const storeName = '골목 마트';
