@@ -63,12 +63,6 @@ function RouteComponent() {
                     className='h-10 flex-1 text-[13px]'
                     {...register('name')}
                   />
-                  <Button
-                    type='button'
-                    variant='outline'
-                    className='h-10 whitespace-nowrap rounded-full border-[#dbe4ec] bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'>
-                    중복확인
-                  </Button>
                 </div>
               </div>
 
@@ -85,25 +79,7 @@ function RouteComponent() {
                     className='h-10 flex-1 text-[13px]'
                     {...register('phone')}
                   />
-                  <Button
-                    type='button'
-                    className='h-10 whitespace-nowrap rounded-full bg-[#2ac1bc] text-[13px] font-semibold text-white hover:bg-[#1ba7a1]'>
-                    인증하기
-                  </Button>
                 </div>
-              </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor='phoneCode' className='text-[12px] text-[#1b1b1b]'>
-                  인증번호
-                </Label>
-                <Input
-                  id='phoneCode'
-                  inputMode='numeric'
-                  placeholder='인증번호 6자리'
-                  className='h-10 text-[13px]'
-                  {...register('phoneCode')}
-                />
               </div>
 
               <div className='space-y-2'>

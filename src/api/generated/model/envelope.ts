@@ -8,8 +8,8 @@
 
 export interface Envelope {
   height?: number;
-  diameter?: number;
   null?: boolean;
+  diameter?: number;
   width?: number;
   area?: number;
   minX?: number;

@@ -7,7 +7,14 @@
  */
 import type { GeneratePresignedUrlRequestDomain } from './generatePresignedUrlRequestDomain';
 
+/**
+ * S3 Presigned URL 생성 요청
+ */
 export interface GeneratePresignedUrlRequest {
+  /** 파일 이름 */
   fileName: string;
+  /** 업로드 도메인. 사용 가능한 값: USER_PROFILE, STORE, PRODUCT, REVIEW */
   domain: GeneratePresignedUrlRequestDomain;
+  /** 파일 Content-Type */
+  contentType: string;
 }

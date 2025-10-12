@@ -9,9 +9,9 @@ import type { Type } from './type';
 
 export interface PrecisionModel {
   scale?: number;
-  offsetX?: number;
-  offsetY?: number;
-  maximumSignificantDigits?: number;
   type?: Type;
   floating?: boolean;
+  maximumSignificantDigits?: number;
+  offsetX?: number;
+  offsetY?: number;
 }

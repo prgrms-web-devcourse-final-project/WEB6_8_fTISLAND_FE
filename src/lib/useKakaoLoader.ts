@@ -13,6 +13,8 @@ declare global {
   }
 }
 
+console.log(import.meta.env.VITE_KAKAO_JS_KEY);
+
 function maskKey(value?: string): string | undefined {
   if (!value) return value;
   if (value.length <= 6) return '*'.repeat(value.length);

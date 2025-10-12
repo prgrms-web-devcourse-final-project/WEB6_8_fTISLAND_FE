@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+// import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 // import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
@@ -17,7 +17,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useForm } from 'react-hook-form';
-import { LucideBuilding, LucideHome, LucidePlusCircle, Search, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
+import { useAddAddress, useGetMyAddresses, useDeleteAddress, useSetDefaultAddress } from '@/api/generated';
+import type { AddressCreateRequest } from '@/api/generated/model/addressCreateRequest';
+import { toast } from 'sonner';
 
 // Kakao Maps SDK typings (simple guard)
 declare global {
@@ -72,32 +75,78 @@ export default function AddressManage({
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
   // 주소 설정 팝업으로 검색 플로우를 이관하여 여기선 사용하지 않음
   // const [previewMap, setPreviewMap] = React.useState<string | null>(null);
+  const myAddressesQuery = useGetMyAddresses({ query: { enabled: asDialog ? isOpen : true } } as any);
+  const apiAddresses = ((myAddressesQuery.data as any)?.data?.content ?? []) as Array<{
+    addressId: number;
+    addressName?: string;
+    address?: string;
+    isDefault?: boolean;
+  }>;
   const [localSavedAddresses, setLocalSavedAddresses] = React.useState(savedAddresses);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
+  const [defaultConfirmOpen, setDefaultConfirmOpen] = React.useState(false);
+  const [defaultTargetId, setDefaultTargetId] = React.useState<number | null>(null);
   const [addressDialogOpen, setAddressDialogOpen] = React.useState(false);
   const [mapDialogOpen, setMapDialogOpen] = React.useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = React.useState(false);
+  const [defaultPickerOpen, setDefaultPickerOpen] = React.useState(false);
   const [pendingAddress, setPendingAddress] = React.useState<{
     id: string;
     address: string;
     buildingName?: string;
     postalCode?: string;
+    lat?: number;
+    lng?: number;
   } | null>(null);
-  const [presetType, setPresetType] = React.useState<'home' | 'company' | 'custom' | null>(null);
-  const [homeAddress, setHomeAddress] = React.useState<{
-    address: string;
-    buildingName?: string;
-    postalCode?: string;
-    unitNumber?: string;
-  } | null>(null);
-  const [companyAddress, setCompanyAddress] = React.useState<{
-    address: string;
-    buildingName?: string;
-    postalCode?: string;
-    unitNumber?: string;
-  } | null>(null);
+  const [presetType] = React.useState<'home' | 'company' | 'custom' | null>(null);
+  // removed home/company local states (no longer used in UI)
+  // const [homeAddress, setHomeAddress] = React.useState<{ address: string; buildingName?: string; postalCode?: string; unitNumber?: string } | null>(null);
+  // const [companyAddress, setCompanyAddress] = React.useState<{ address: string; buildingName?: string; postalCode?: string; unitNumber?: string } | null>(null);
   // const isCustomer = role === 'customer';
+
+  const addAddressMutation = useAddAddress({
+    mutation: {
+      onSuccess: () => {
+        toast.success('배송지가 추가되었습니다.');
+        (myAddressesQuery as any).refetch?.();
+      },
+    },
+  });
+
+  const deleteAddressMutation = useDeleteAddress({
+    mutation: {
+      onSuccess: () => {
+        toast.success('주소가 삭제되었습니다.');
+        (myAddressesQuery as any).refetch?.();
+      },
+    },
+  });
+
+  const setDefaultAddressMutation = useSetDefaultAddress({
+    mutation: {
+      onSuccess: (_res, variables) => {
+        toast.success('기본 배송지가 설정되었습니다.');
+        (myAddressesQuery as any).refetch?.();
+        setDefaultPickerOpen(false);
+        setDefaultConfirmOpen(false);
+        // 헤더 즉시 반영을 위해 부모 onSave 호출 (우회 바인딩)
+        try {
+          const picked = apiAddresses.find((a) => a.addressId === (variables as any)?.addressId);
+          if (picked) {
+            onSave?.({
+              keyword: '',
+              selectedAddress: { address: picked.address || '', buildingName: picked.addressName || '' },
+              type: 'custom',
+              setPrimary: true,
+              agreeLocation: false,
+            });
+          }
+        } catch {}
+        onClose?.();
+      },
+    },
+  });
 
   const form = useForm<AddressFormValues>({
     defaultValues: {
@@ -214,12 +263,19 @@ export default function AddressManage({
                 onClick={() => setMapDialogOpen(true)}>
                 현재 위치로 찾기
               </Button>
+              <Button
+                type='button'
+                size='sm'
+                className='h-10 w-full rounded-full bg-[#2ac1bc] px-3 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'
+                onClick={() => setDefaultPickerOpen(true)}>
+                기본 배송지 설정
+              </Button>
             </div>
           </section>
 
           {/* 현재 위치로 찾기 버튼 아래 선택된 주소 섹션 제거 */}
 
-          <section className='space-y-3 mb-4'>
+          {/* <section className='space-y-3 mb-4'>
             <div className='flex items-center gap-2 flex-col'>
               <Card className='w-full flex py-4 gap-1'>
                 <CardHeader className='text-[13px] font-semibold text-[#1b1b1b] flex items-center gap-2'>
@@ -316,12 +372,46 @@ export default function AddressManage({
                 </CardContent>
               </Card>
             </div>
-          </section>
+          </section> */}
 
-          {localSavedAddresses.length > 0 ? (
+          {(apiAddresses?.length ?? 0) > 0 || localSavedAddresses.length > 0 ? (
             <section className='space-y-2'>
               <p className='text-[12px] font-semibold text-[#1b1b1b]'>등록된 주소</p>
               <div className='space-y-2 rounded-2xl bg-white px-3 py-2 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)] max-h-56 overflow-y-auto'>
+                {/* 서버 주소 목록 */}
+                {apiAddresses?.map((item) => (
+                  <div
+                    key={`api-${item.addressId}`}
+                    className='flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-[13px] text-[#1b1b1b] transition-colors hover:bg-[#f5f7f9]'>
+                    <button
+                      type='button'
+                      className='flex-1 text-left'
+                      onClick={() => {
+                        setDefaultTargetId(item.addressId);
+                        setDefaultConfirmOpen(true);
+                      }}>
+                      <span className='space-y-0.5'>
+                        <span className='font-semibold'>{item.addressName || '기본'}</span>
+                        <span className='block text-[12px] text-[#6b7785]'>{item.address}</span>
+                      </span>
+                    </button>
+                    <span className='flex items-center gap-2 pl-2'>
+                      {item.isDefault ? (
+                        <span className='rounded-full bg-[#2ac1bc]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1f6e6b]'>
+                          기본
+                        </span>
+                      ) : null}
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        className='h-8 rounded-full text-[#f43f5e] hover:bg-[#fee2e2]'
+                        onClick={() => deleteAddressMutation.mutateAsync({ addressId: item.addressId })}>
+                        삭제
+                      </Button>
+                    </span>
+                  </div>
+                ))}
+                {/* 로컬 생성 목록 */}
                 {localSavedAddresses.map((item) => (
                   <button
                     key={item.id}
@@ -413,40 +503,18 @@ export default function AddressManage({
               <DetailAddressForm
                 base={pendingAddress}
                 presetType={presetType ?? 'custom'}
-                onSubmit={(values) => {
-                  // 선택된 상세 정보를 메인 상태 및 리스트에 반영
-                  const fullDetail = values.unitNumber?.trim()
-                    ? `${values.address.address} ${values.unitNumber}`
-                    : values.address.address;
-
-                  if (values.type === 'home') {
-                    setHomeAddress({
-                      address: values.address.address,
-                      buildingName: values.address.buildingName,
-                      postalCode: values.address.postalCode,
-                      unitNumber: values.unitNumber,
-                    });
-                  } else if (values.type === 'company') {
-                    setCompanyAddress({
-                      address: values.address.address,
-                      buildingName: values.address.buildingName,
-                      postalCode: values.address.postalCode,
-                      unitNumber: values.unitNumber,
-                    });
-                  } else {
-                    // custom은 기존 리스트에 추가
-                    setLocalSavedAddresses((prev) => [
-                      {
-                        id: `${Date.now()}`,
-                        label: values.address.buildingName || '일반',
-                        detail: fullDetail,
-                        isPrimary: false,
-                        type: 'custom',
-                      },
-                      ...prev,
-                    ]);
+                onSubmit={async (values) => {
+                  const payload: AddressCreateRequest = {
+                    addressName: values.address.buildingName || '일반',
+                    address: values.address.address + (values.unitNumber?.trim() ? ` ${values.unitNumber.trim()}` : ''),
+                    latitude: pendingAddress?.lat ?? 0,
+                    longitude: pendingAddress?.lng ?? 0,
+                  };
+                  try {
+                    await addAddressMutation.mutateAsync({ data: payload });
+                  } finally {
+                    setDetailDialogOpen(false);
                   }
-                  setDetailDialogOpen(false);
                 }}
               />
             ) : null}
@@ -466,6 +534,63 @@ export default function AddressManage({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        {/* 기본 배송지 설정 확인 다이얼로그 */}
+        <AlertDialog open={defaultConfirmOpen} onOpenChange={setDefaultConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>기본 배송지로 설정하시겠습니까?</AlertDialogTitle>
+              <AlertDialogDescription>선택한 주소가 기본 배송지로 설정됩니다.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>취소</AlertDialogCancel>
+              <AlertDialogAction
+                className='bg-[#2ac1bc] hover:bg-[#1ba7a1]'
+                onClick={async () => {
+                  if (defaultTargetId != null) {
+                    await setDefaultAddressMutation.mutateAsync({ addressId: defaultTargetId });
+                  }
+                  setDefaultConfirmOpen(false);
+                }}>
+                확인
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        {/* 기본 배송지 선택 팝업 */}
+        <Dialog open={defaultPickerOpen} onOpenChange={setDefaultPickerOpen}>
+          <DialogContent className='mx-auto w-[90%] max-w-[26rem] rounded-2xl border-0 p-0 shadow-2xl'>
+            <DialogHeader className='px-5 pb-3 pt-4'>
+              <DialogTitle className='text-[15px] font-semibold text-[#1b1b1b]'>기본 배송지 설정</DialogTitle>
+            </DialogHeader>
+            <div className='space-y-2 rounded-2xl bg-white px-3 py-2'>
+              {apiAddresses?.length ? (
+                <div className='space-y-2 max-h-64 overflow-y-auto'>
+                  {apiAddresses.map((item) => (
+                    <button
+                      key={`pick-${item.addressId}`}
+                      type='button'
+                      className='flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-[13px] text-[#1b1b1b] transition-colors hover:bg-[#f5f7f9]'
+                      onClick={async () => {
+                        await setDefaultAddressMutation.mutateAsync({ addressId: item.addressId });
+                      }}>
+                      <span className='space-y-0.5'>
+                        <span className='font-semibold'>{item.addressName || '주소'}</span>
+                        <span className='block text-[12px] text-[#6b7785]'>{item.address}</span>
+                      </span>
+                      {item.isDefault ? (
+                        <span className='rounded-full bg-[#2ac1bc]/10 px-2 py-0.5 text-[11px] font-semibold text-[#1f6e6b]'>
+                          기본
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className='px-3 py-2 text-[12px] text-[#6b7785]'>등록된 주소가 없습니다.</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -478,12 +603,19 @@ export default function AddressManage({
 function KakaoSearchMap({
   onPick,
 }: {
-  onPick(item: { id: string; address: string; buildingName?: string; postalCode?: string }): void;
+  onPick(item: {
+    id: string;
+    address: string;
+    buildingName?: string;
+    postalCode?: string;
+    lat?: number;
+    lng?: number;
+  }): void;
 }) {
   const [keyword, setKeyword] = React.useState('');
   const [searching, setSearching] = React.useState(false);
   const [results, setResults] = React.useState<
-    Array<{ id: string; address: string; buildingName?: string; postalCode?: string }>
+    Array<{ id: string; address: string; buildingName?: string; postalCode?: string; lat?: number; lng?: number }>
   >([]);
   const [kakaoReady, setKakaoReady] = React.useState<boolean>(
     typeof window !== 'undefined' && Boolean((window as any).kakao?.maps?.services)
@@ -521,6 +653,8 @@ function KakaoSearchMap({
                 address: item.road_address_name || item.address_name,
                 buildingName: item.place_name,
                 postalCode: item.road_address?.zone_no,
+                lat: item.y ? Number(item.y) : undefined,
+                lng: item.x ? Number(item.x) : undefined,
                 __priority: item.road_address_name ? 1 : 0, // 도로명 주소 우선 정렬용
               }))
               .sort((a: any, b: any) => b.__priority - a.__priority)
@@ -529,6 +663,8 @@ function KakaoSearchMap({
                 address: item.address,
                 buildingName: item.buildingName,
                 postalCode: item.postalCode,
+                lat: item.lat,
+                lng: item.lng,
               }));
             if (isAppendingRef.current) {
               setResults((prev) => [...prev, ...mapped]);
@@ -585,7 +721,6 @@ function KakaoSearchMap({
           return;
         }
         const key = (import.meta as any)?.env?.VITE_KAKAO_JS_KEY as string;
-        console.log({ key });
         if (!key) return reject(new Error('Missing VITE_KAKAO_JS_KEY'));
         // singleton loader
         if ((w as any).__kakaoLoaderPromise) return (w as any).__kakaoLoaderPromise.then(() => resolve()).catch(reject);
@@ -706,7 +841,14 @@ function KakaoSearchMap({
 function KakaoPickOnMap({
   onPick,
 }: {
-  onPick(item: { id: string; address: string; buildingName?: string; postalCode?: string }): void;
+  onPick(item: {
+    id: string;
+    address: string;
+    buildingName?: string;
+    postalCode?: string;
+    lat?: number;
+    lng?: number;
+  }): void;
 }) {
   const [kakaoReady, setKakaoReady] = React.useState<boolean>(
     typeof window !== 'undefined' && Boolean((window as any).kakao?.maps?.services)
@@ -863,7 +1005,7 @@ function KakaoPickOnMap({
     const center = mapRef.current.getCenter();
     const lat = center.getLat();
     const lng = center.getLng();
-    onPick({ id: `${lat},${lng}`, address: displayAddress, postalCode });
+    onPick({ id: `${lat},${lng}`, address: displayAddress, postalCode, lat, lng });
   }, [displayAddress, postalCode, onPick]);
 
   return (
@@ -911,7 +1053,7 @@ function DetailAddressForm({
   }) => void;
 }) {
   const [unitNumber, setUnitNumber] = React.useState<string>('');
-  const [type, setType] = React.useState<'home' | 'company' | 'custom'>(presetType);
+  const [type] = React.useState<'home' | 'company' | 'custom'>(presetType);
   const mapRef = React.useRef<HTMLDivElement | null>(null);
   const kakaoMapRef = React.useRef<any>(null);
   const [kakaoReady, setKakaoReady] = React.useState<boolean>(
@@ -1028,7 +1170,7 @@ function DetailAddressForm({
           onChange={(e) => setUnitNumber(e.target.value)}
         />
       </div>
-      <div className='space-y-2'>
+      {/* <div className='space-y-2'>
         <p className='text-[12px] font-semibold text-[#1b1b1b]'>주소 유형</p>
         <RadioGroup value={type} onValueChange={(v) => setType(v as any)} className='grid grid-cols-3 gap-2'>
           <div className='flex items-center gap-2 rounded-xl border border-[#dbe4ec] px-3 py-2'>
@@ -1050,7 +1192,7 @@ function DetailAddressForm({
             </Label>
           </div>
         </RadioGroup>
-      </div>
+      </div> */}
       <div className='flex justify-end'>
         <Button
           type='button'

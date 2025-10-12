@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
+import { useGetMyProfile2, useGetAddress } from '@/api/generated';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,20 @@ type CartItem = { id: string; name: string; price: number; qty: number };
 function RouteComponent() {
   const [addressOpen, setAddressOpen] = React.useState(false);
   const [address, setAddress] = React.useState<{ base?: string; detail?: string }>({});
+
+  // 기본 주소 조회 후 상단 표시
+  const myProfileQuery = useGetMyProfile2();
+  const profile = (myProfileQuery.data as any)?.data?.content;
+  const defaultAddressId = profile?.defaultAddressId as number | undefined;
+  const addressQuery = useGetAddress(defaultAddressId ?? 0, { query: { enabled: !!defaultAddressId } } as any);
+  const boundAddress = (addressQuery.data as any)?.data?.content as
+    | { address?: string; detail?: string; unitNumber?: string }
+    | undefined;
+  React.useEffect(() => {
+    if (boundAddress?.address) {
+      setAddress({ base: boundAddress.address, detail: boundAddress.unitNumber || '' });
+    }
+  }, [boundAddress?.address, boundAddress?.unitNumber]);
   const [items, setItems] = React.useState<CartItem[]>([
     { id: 'p1', name: '상품 1', price: 9900, qty: 1 },
     { id: 'p2', name: '상품 2', price: 12900, qty: 2 },
@@ -100,7 +115,7 @@ function RouteComponent() {
 
         <Card className='border-none bg-white shadow-sm'>
           <CardContent className='space-y-3 px-4 py-4 sm:px-5'>
-            <p className='text-[13px] font-semibold text-[#1b1b1b]'>상점 상호</p>
+            <p className='text-[13px] font-semibold text-[#1b1b1b]'>주문 할 상품 내역</p>
             <div className='space-y-2'>
               {items.map((it) => (
                 <div key={it.id} className='flex items-center justify-between rounded-xl bg-[#f5f7f9] px-3 py-2'>
@@ -190,6 +205,7 @@ function RouteComponent() {
             role='customer'
             onSave={(v) => {
               setAddress({ base: v.selectedAddress?.address, detail: v.unitNumber ?? '' });
+              setAddressOpen(false);
             }}
             onClose={() => setAddressOpen(false)}
           />

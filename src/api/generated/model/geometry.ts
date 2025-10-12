@@ -33,7 +33,7 @@ export interface Geometry {
   boundary?: __Geometry;
   boundaryDimension?: number;
   envelopeInternal?: Envelope;
-  numGeometries?: number;
   geometryType?: string;
   dimension?: number;
+  numGeometries?: number;
 }

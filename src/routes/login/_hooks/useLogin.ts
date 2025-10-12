@@ -18,6 +18,7 @@ export type LoginResponse = {
     name: string;
     currentActiveProfileType: ProfileType;
     currentActiveProfileId: number;
+    storeId?: number;
     isOnboardingCompleted: boolean;
     availableProfiles: ProfileType[];
     accessToken?: string;
@@ -42,7 +43,7 @@ export default function useLogin() {
 async function fetchToken(url: string, body: unknown): Promise<LoginResponse> {
   // 직접 axios 인스턴스를 불러서 headers 읽기
   const { api } = await import('@/api/core');
-  const response = await api.post<LoginResponse>(url, body);
+  const response = await api.post<LoginResponse>(url, body, { withCredentials: true });
   // Authorization: Bearer xxx
   const auth = response.headers?.['authorization'] || response.headers?.['Authorization'];
   if (auth && typeof auth === 'string') {

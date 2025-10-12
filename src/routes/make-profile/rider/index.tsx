@@ -1,11 +1,18 @@
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createFileRoute } from '@tanstack/react-router';
-import { Camera, Clock4, IdCard, MapPin, Phone, ShieldCheck, Upload, Users } from 'lucide-react';
-import { useCallback, useMemo, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Camera, Clock4, IdCard, MapPin, Phone, ShieldCheck, Upload, Users, Search, Crosshair } from 'lucide-react';
+import { useForm, Controller } from 'react-hook-form';
+import { usePresignedUpload } from '@/lib/usePresignedUpload';
+import { GeneratePresignedUrlRequestDomain } from '@/api/generated/model/generatePresignedUrlRequestDomain';
+import { useCreateProfile, useUpdateDeliveryArea } from '@/api/generated';
+import { CreateProfileRequestProfileType } from '@/api/generated/model/createProfileRequestProfileType';
+import { toast } from 'sonner';
+import { useKakaoLoader } from '@/lib/useKakaoLoader';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 export const Route = createFileRoute('/make-profile/rider/')({
   component: RouteComponent,
@@ -13,14 +20,15 @@ export const Route = createFileRoute('/make-profile/rider/')({
 
 interface RiderProfileFormValues {
   nickname: string;
-  serviceArea: string;
-  phone: string;
+  vehicleType: 'MOTORCYCLE' | 'BICYCLE' | 'CAR' | '';
+  vehicleNumber: string;
   licenseNumber: string;
-  startTime: string;
-  endTime: string;
-  experienceMonths: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
   profileImage: FileList | undefined;
-  agreeLocation: boolean;
+  profileImageUrl: string;
+  serviceArea: string;
 }
 
 const PREP_STEPS = [
@@ -37,27 +45,58 @@ function RouteComponent() {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    setValue,
+    control,
+    formState: { errors, isSubmitting, isValid },
   } = useForm<RiderProfileFormValues>({
+    mode: 'onChange',
     defaultValues: {
       nickname: '',
-      serviceArea: '',
-      phone: '',
+      vehicleType: '',
+      vehicleNumber: '',
       licenseNumber: '',
-      startTime: '10:00',
-      endTime: '22:00',
-      experienceMonths: '',
+      bankName: '',
+      accountNumber: '',
+      accountHolder: '',
       profileImage: undefined,
-      agreeLocation: false,
+      profileImageUrl: '',
+      serviceArea: '',
     },
   });
 
   const profileImageFile = watch('profileImage');
   const profileImageName = useMemo(() => profileImageFile?.[0]?.name ?? '', [profileImageFile]);
 
-  const onSubmit = useCallback((data: RiderProfileFormValues) => {
-    console.log('rider profile submit', data);
-  }, []);
+  const uploadMutation = usePresignedUpload();
+  const navigate = useNavigate();
+  const createProfileMutation = useCreateProfile();
+  const updateAreaMutation = useUpdateDeliveryArea();
+
+  const onSubmit = useCallback(
+    async (data: RiderProfileFormValues) => {
+      await createProfileMutation.mutateAsync({
+        data: {
+          profileType: CreateProfileRequestProfileType.RIDER,
+          profileData: {
+            nickname: data.nickname,
+            vehicleType: data.vehicleType || undefined,
+            vehicleNumber: data.vehicleNumber || undefined,
+            licenseNumber: data.licenseNumber || undefined,
+            bankName: data.bankName || undefined,
+            accountNumber: data.accountNumber || undefined,
+            accountHolder: data.accountHolder || undefined,
+            profileImageUrl: data.profileImageUrl || undefined,
+          },
+        },
+      });
+      if (data.serviceArea?.trim()) {
+        await updateAreaMutation.mutateAsync({ data: { deliveryArea: data.serviceArea.trim() } } as any);
+      }
+      toast.success('라이더 프로필이 생성되었습니다.');
+      navigate({ to: '/rider' });
+    },
+    [createProfileMutation, updateAreaMutation, navigate]
+  );
 
   // const onSaveDraft = useCallback((data: RiderProfileFormValues) => {
   //   console.log('rider profile draft', data);
@@ -132,16 +171,10 @@ function RouteComponent() {
                     required: '닉네임을 입력해 주세요.',
                   })}
                 />
-                <Button
-                  type='button'
-                  variant='outline'
-                  className='h-10 rounded-xl border-[#dbe4ec] px-3 text-[12px] font-semibold text-[#2ac1bc] hover:border-[#2ac1bc] hover:bg-[#2ac1bc]/10 sm:h-11 sm:px-4 sm:text-xs'>
-                  중복 체크
-                </Button>
               </div>
             </FieldRow>
 
-            <FieldRow icon={MapPin} label='배달 가능 주소' error={errors.serviceArea?.message}>
+            {/* <FieldRow icon={MapPin} label='배달 가능 주소' error={errors.serviceArea?.message}>
               <Input
                 placeholder='예) 성북구 전체, 동선동·보문동'
                 className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
@@ -149,23 +182,44 @@ function RouteComponent() {
                   required: '배달 가능 지역을 입력해 주세요.',
                 })}
               />
-            </FieldRow>
+            </FieldRow> */}
 
-            <FieldRow icon={Phone} label='연락 가능한 번호' error={errors.phone?.message}>
-              <Input
-                placeholder='예) 010-1234-5678'
-                className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
-                {...register('phone', {
-                  required: '연락처를 입력해 주세요.',
-                  pattern: {
-                    value: /^\d{2,3}-?\d{3,4}-?\d{4}$/,
-                    message: '전화번호 형식을 확인해 주세요.',
-                  },
-                })}
+            <FieldRow icon={Users} label='운송 수단' error={errors.vehicleType as any}>
+              <Controller
+                control={control}
+                name='vehicleType'
+                rules={{ required: '운송 수단을 선택해 주세요.' }}
+                render={({ field }) => (
+                  <Select value={field.value || ''} onValueChange={field.onChange}>
+                    <SelectTrigger className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'>
+                      <SelectValue placeholder='운송 수단을 선택하세요' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='MOTORCYCLE'>오토바이</SelectItem>
+                      <SelectItem value='BICYCLE'>자전거</SelectItem>
+                      <SelectItem value='CAR'>자동차</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               />
             </FieldRow>
 
-            <FieldRow icon={IdCard} label='면허 번호 (선택)'>
+            <FieldRow icon={Phone} label='연락 가능한 번호'>
+              <Input
+                placeholder='예) 010-1234-5678'
+                className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
+              />
+            </FieldRow>
+
+            <FieldRow icon={IdCard} label='차량 번호'>
+              <Input
+                placeholder='예) 12가3456'
+                className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
+                {...register('vehicleNumber')}
+              />
+            </FieldRow>
+
+            <FieldRow icon={IdCard} label='면허 번호'>
               <Input
                 placeholder='예) 21-123456-01'
                 className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
@@ -222,8 +276,58 @@ function RouteComponent() {
                   profileInputRef.current = node;
                   registerProfileImageRef(node);
                 }}
+                onChange={async (e) => {
+                  // propagate to RHF
+                  profileImageRegister.onChange?.(e);
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (!file) return;
+                  try {
+                    const { objectUrl } = await uploadMutation.mutateAsync({
+                      file,
+                      domain: GeneratePresignedUrlRequestDomain.USER_PROFILE,
+                    });
+                    setValue('profileImageUrl', objectUrl, { shouldDirty: true });
+                    toast.success('이미지 업로드 완료');
+                  } finally {
+                    (e.target as HTMLInputElement).value = '';
+                  }
+                }}
               />
+              <input type='hidden' {...register('profileImageUrl')} />
             </div>
+            {watch('profileImageUrl') ? (
+              <div className='pt-2'>
+                <img
+                  src={watch('profileImageUrl')}
+                  alt='미리보기'
+                  className='h-24 w-24 rounded-xl border border-[#e2e8f0] object-cover shadow-sm'
+                />
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className='border-none bg-white shadow-sm'>
+          <CardHeader className='space-y-2 pb-2.5 sm:pb-3'>
+            <CardTitle className='text-[15px] font-semibold text-[#1b1b1b] sm:text-lg'>배달 가능 주소</CardTitle>
+            <CardDescription className='text-[12px] text-[#5c5c5c] sm:text-sm'>
+              검색 또는 지도에서 중앙 핀 위치로 배달 가능 주소를 설정하세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-3'>
+            <MakeRiderAreaSection
+              value={watch('serviceArea')}
+              onChange={(text) => setValue('serviceArea', text, { shouldDirty: true })}
+              onApply={async (text) => {
+                if (!text?.trim()) return;
+                try {
+                  await updateAreaMutation.mutateAsync({ data: { deliveryArea: text.trim() } } as any);
+                  toast.success('배달 가능 지역이 적용되었습니다.');
+                } catch (e: any) {
+                  toast.error(e?.message ?? '배달 가능 지역 적용에 실패했습니다.');
+                }
+              }}
+            />
           </CardContent>
         </Card>
 
@@ -259,34 +363,30 @@ function RouteComponent() {
 
         <Card className='border-none bg-white shadow-sm'>
           <CardHeader className='space-y-2 pb-2.5 sm:pb-3'>
-            <CardTitle className='text-[15px] font-semibold text-[#1b1b1b] sm:text-lg'>위치 정보 이용 동의</CardTitle>
-            <CardDescription className='text-[12px] text-[#5c5c5c] sm:text-sm'>
-              실시간 매칭 및 배달 동선 안내를 위해
-              <br />
-              위치 정보 제공 동의가 필요해요.
-            </CardDescription>
+            <CardTitle className='text-[15px] font-semibold text-[#1b1b1b] sm:text-lg'>정산 계좌 정보</CardTitle>
           </CardHeader>
-          <CardContent className='space-y-3'>
-            <label className='flex items-start gap-3 rounded-2xl bg-[#f0fffd] px-3.5 py-3 text-[13px] text-[#1b1b1b] sm:px-4 sm:text-sm'>
-              <input
-                type='checkbox'
-                className='mt-1 size-4 rounded-md border-[#cbd8e2] accent-[#2ac1bc] sm:size-5'
-                {...register('agreeLocation', {
-                  required: '위치 정보 이용 동의가 필요해요.',
-                })}
+          <CardContent className='space-y-4'>
+            <FieldRow icon={IdCard} label='은행명'>
+              <Input
+                placeholder='예) 국민은행'
+                className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
+                {...register('bankName')}
               />
-              <span className='space-y-1'>
-                <strong className='block text-[13px] font-semibold sm:text-sm'>위치 정보 이용 동의</strong>
-                <span className='block text-[12px] text-[#6b7785] sm:text-xs'>
-                  현재 위치 기반 주문 매칭과
-                  <br />
-                  실시간 배송 상태 안내에 사용돼요.
-                </span>
-              </span>
-            </label>
-            {errors.agreeLocation ? (
-              <p className='text-[11px] text-[#f43f5e] sm:text-xs'>{errors.agreeLocation.message}</p>
-            ) : null}
+            </FieldRow>
+            <FieldRow icon={IdCard} label='계좌번호'>
+              <Input
+                placeholder='숫자만 입력'
+                className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
+                {...register('accountNumber')}
+              />
+            </FieldRow>
+            <FieldRow icon={IdCard} label='예금주'>
+              <Input
+                placeholder='예) 김배달'
+                className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
+                {...register('accountHolder')}
+              />
+            </FieldRow>
           </CardContent>
         </Card>
       </main>
@@ -296,13 +396,213 @@ function RouteComponent() {
         <div className='mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center'>
           <Button
             type='submit'
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isValid}
             className='h-10 w-full rounded-full bg-[#1ba7a1] text-[13px] font-semibold text-white hover:bg-[#17928d] disabled:cursor-not-allowed disabled:opacity-70 sm:h-11 sm:w-auto sm:px-8'>
             라이더 프로필 제출하기
           </Button>
         </div>
       </footer>
     </form>
+  );
+}
+
+function MakeRiderAreaSection({
+  value,
+  onChange,
+  onApply,
+}: {
+  value: string;
+  onChange: (text: string) => void;
+  onApply: (text: string) => Promise<void> | void;
+}) {
+  const { ready, ensure } = useKakaoLoader();
+  const [mode, setMode] = useState<'search' | 'map'>('search');
+  const [keyword, setKeyword] = useState('');
+  const [results, setResults] = useState<Array<{ id: string; address: string; buildingName?: string }>>([]);
+  const [searching, setSearching] = useState(false);
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const mapObjRef = useRef<any>(null);
+  const geocoderRef = useRef<any>(null);
+  const [displayAddress, setDisplayAddress] = useState<string>('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const init = async () => {
+      try {
+        if (mode !== 'map') return;
+        await ensure();
+        if (cancelled || !mapRef.current) return;
+        const w: any = window;
+        const kakao = w.kakao;
+        const map = new kakao.maps.Map(mapRef.current, {
+          center: new kakao.maps.LatLng(37.5665, 126.978),
+          level: 3,
+        });
+        mapObjRef.current = map;
+        const geocoder = (geocoderRef.current ||= new kakao.maps.services.Geocoder());
+        const update = () => {
+          const c = map.getCenter();
+          geocoder.coord2Address(c.getLng(), c.getLat(), (res: any, status: any) => {
+            if (status === kakao.maps.services.Status.OK && res && res.length > 0) {
+              const item = res[0];
+              const road = item.road_address?.address_name as string | undefined;
+              const jibun = item.address?.address_name as string | undefined;
+              const addr = road || jibun || '';
+              setDisplayAddress(addr);
+            }
+          });
+        };
+        kakao.maps.event.addListener(map, 'center_changed', () => setTimeout(update, 200));
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const loc = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+              map.setCenter(loc);
+              update();
+            },
+            () => update(),
+            { enableHighAccuracy: true, timeout: 8000 }
+          );
+        } else {
+          update();
+        }
+      } catch {}
+    };
+    init();
+    return () => {
+      cancelled = true;
+    };
+  }, [ensure, ready, mode]);
+
+  const runSearch = React.useCallback(async () => {
+    if (!keyword.trim()) return;
+    setSearching(true);
+    try {
+      await ensure();
+      const w: any = window;
+      if (!w?.kakao?.maps?.services) {
+        setSearching(false);
+        return;
+      }
+      const ps = new w.kakao.maps.services.Places();
+      ps.keywordSearch(keyword, (data: any, status: any) => {
+        if (status === w.kakao.maps.services.Status.OK) {
+          const mapped = (data || []).map((item: any) => ({
+            id: item.id,
+            address: item.road_address_name || item.address_name,
+            buildingName: item.place_name,
+          }));
+          setResults(mapped);
+        } else {
+          setResults([]);
+        }
+        setSearching(false);
+      });
+    } catch {
+      setSearching(false);
+    }
+  }, [keyword, ensure]);
+
+  return (
+    <div className='space-y-3'>
+      <div className='grid grid-cols-2 gap-2'>
+        <Button
+          type='button'
+          variant={mode === 'search' ? 'default' : 'outline'}
+          className={
+            mode === 'search' ? 'h-9 rounded-full bg-[#2ac1bc] text-white hover:bg-[#1ba7a1]' : 'h-9 rounded-full'
+          }
+          onClick={() => setMode('search')}>
+          <Search className='mr-1 size-4' /> 검색으로 찾기
+        </Button>
+        <Button
+          type='button'
+          variant={mode === 'map' ? 'default' : 'outline'}
+          className={
+            mode === 'map' ? 'h-9 rounded-full bg-[#2ac1bc] text-white hover:bg-[#1ba7a1]' : 'h-9 rounded-full'
+          }
+          onClick={() => setMode('map')}>
+          <Crosshair className='mr-1 size-4' /> 현재 위치로 설정
+        </Button>
+      </div>
+
+      {mode === 'search' ? (
+        <>
+          <div className='flex items-center gap-2 rounded-2xl border border-[#bbe7e4] bg-[#f0fffd] px-3 py-2.5'>
+            <Search className='size-[18px] text-[#2ac1bc]' aria-hidden />
+            <input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  runSearch();
+                }
+              }}
+              placeholder='예) 서울시 중구 세종대로 110'
+              className='h-9 flex-1 border-0 bg-transparent text-[13px] text-[#1b1b1b] outline-none placeholder:text-[#9aa5b1]'
+            />
+            <Button
+              type='button'
+              size='sm'
+              className='h-8 rounded-full bg-[#2ac1bc] px-4 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'
+              onClick={runSearch}
+              disabled={searching}>
+              검색
+            </Button>
+          </div>
+          {results.length > 0 ? (
+            <ul className='max-h-56 space-y-2 overflow-y-auto rounded-2xl bg-white px-3 py-2 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)]'>
+              {results.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type='button'
+                    className='w-full rounded-xl px-3 py-2 text-left text-[13px] text-[#1b1b1b] transition-colors hover:bg-[#f5f7f9]'
+                    onClick={async () => {
+                      onChange(r.address);
+                      await onApply(r.address);
+                    }}>
+                    <p className='font-semibold'>{r.address}</p>
+                    {r.buildingName ? <p className='text-[12px] text-[#667085]'>{r.buildingName}</p> : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <div className='relative h-56 rounded-2xl overflow-hidden'>
+            <div ref={mapRef} className='absolute inset-0 bg-[#e2f6f5]' />
+            <div className='pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full z-50'>
+              <div className='text-2xl'>📍</div>
+            </div>
+          </div>
+          <div className='rounded-xl bg-white px-3 py-2 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)]'>
+            <p className='text-[12px] text-[#1b1b1b]'>도로명 주소</p>
+            <p className='text-[13px] font-semibold text-[#1b1b1b]'>{displayAddress || '주소를 확인 중입니다…'}</p>
+          </div>
+          <div className='flex justify-end'>
+            <Button
+              type='button'
+              className='h-9 rounded-full bg-[#2ac1bc] px-4 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'
+              onClick={async () => {
+                onChange(displayAddress);
+                await onApply(displayAddress);
+              }}>
+              선택 완료
+            </Button>
+          </div>
+        </>
+      )}
+
+      <Input
+        placeholder='예) 성북구 전체, 동선동·보문동'
+        value={value}
+        readOnly
+        className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
+      />
+    </div>
   );
 }
 

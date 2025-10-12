@@ -4,6 +4,8 @@ import { RiderPageLayout } from '../RiderPageLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useGetTotalDeliveriesInfinite, useGetSummary } from '@/api/generated';
+import type { GetTotalDeliveriesParams } from '@/api/generated/model/getTotalDeliveriesParams';
 
 export const Route = createFileRoute('/(dashboard)/rider/history/')({
   component: RouteComponent,
@@ -23,10 +25,10 @@ type HistoryItem = {
   createdAt: number;
 };
 
-type SortBy = 'newest' | 'oldest';
+type SortBy = 'LATEST' | 'OLDEST';
 
 function RouteComponent() {
-  const [sortBy, setSortBy] = React.useState<SortBy>('newest');
+  const [sortBy, setSortBy] = React.useState<SortBy>('LATEST');
   const DELIVERY_LABEL: Record<DeliveryStatus, string> = {
     IN_PROGRESS: '배달 중',
     COMPLETED: '배달 완료',
@@ -37,49 +39,45 @@ function RouteComponent() {
     COMPLETED: '정산 완료',
   };
 
-  const weeklyCount = 18;
-  const pendingAmount = 42000;
-  const weeklySettled = 196000;
+  // 요약 데이터 바인딩
+  const summaryQuery = useGetSummary({ query: { staleTime: 10_000, refetchOnWindowFocus: false } } as any);
+  const summary = ((summaryQuery.data as any)?.data?.content ?? undefined) as
+    | {
+        weeklyTransactionCount?: number;
+        weeklySettledAmount?: number;
+        scheduledSettleAmount?: number;
+      }
+    | undefined;
+  const weeklyCount = Number(summary?.weeklyTransactionCount ?? 0);
+  const pendingAmount = Number(summary?.scheduledSettleAmount ?? 0);
+  const weeklySettled = Number(summary?.weeklySettledAmount ?? 0);
 
-  const [items] = React.useState<HistoryItem[]>([
+  const deliveriesQuery = useGetTotalDeliveriesInfinite<any>(
+    { filter: sortBy, size: 20 } as GetTotalDeliveriesParams,
     {
-      id: 'h1',
-      store: '골목 마트',
-      customerAddress: '서울 성북구 돌곶이로 27 101호',
-      orderId: 'ORD-1201',
-      deliveryStatus: 'COMPLETED',
-      settlementStatus: 'COMPLETED',
-      fee: 3200,
-      createdAt: Date.now() - 1000 * 60 * 30,
-    },
-    {
-      id: 'h2',
-      store: '꽃집 토도',
-      customerAddress: '서울 성북구 동소문로25길 12 1층',
-      orderId: 'ORD-1188',
-      deliveryStatus: 'IN_PROGRESS',
-      settlementStatus: 'PENDING',
-      fee: 3800,
-      createdAt: Date.now() - 1000 * 60 * 120,
-    },
-    {
-      id: 'h3',
-      store: '동네 베이커리',
-      customerAddress: '서울 성북구 장위로 10',
-      orderId: 'ORD-1166',
-      deliveryStatus: 'CANCELED',
-      settlementStatus: 'PENDING',
-      fee: 0,
-      createdAt: Date.now() - 1000 * 60 * 300,
-    },
-  ]);
+      query: {
+        initialPageParam: undefined as string | undefined,
+        getNextPageParam: (last: any) => last?.data?.content?.nextPageToken ?? undefined,
+        refetchOnWindowFocus: false,
+      },
+    } as any
+  );
+  const items: HistoryItem[] = React.useMemo(() => {
+    const pages = (deliveriesQuery.data?.pages ?? []) as any[];
+    const list = pages.flatMap((p) => ((p as any)?.data?.content?.content ?? []) as any[]);
+    return list.map((it: any) => ({
+      id: String(it?.id ?? it?.orderId ?? ''),
+      store: it?.store?.name ?? it?.storeName ?? '상점',
+      customerAddress: it?.address ?? it?.customerAddress ?? '',
+      orderId: String(it?.orderId ?? it?.id ?? ''),
+      deliveryStatus: (it?.status as any) ?? 'COMPLETED',
+      settlementStatus: (it?.settlementStatus as any) ?? 'PENDING',
+      fee: Number(it?.deliveryFee ?? it?.fee ?? 0),
+      createdAt: new Date(it?.createdAt ?? it?.completedAt ?? Date.now()).getTime(),
+    }));
+  }, [deliveriesQuery.data]);
 
-  const sorted = React.useMemo(() => {
-    const arr = [...items];
-    if (sortBy === 'newest') arr.sort((a, b) => b.createdAt - a.createdAt);
-    else arr.sort((a, b) => a.createdAt - b.createdAt);
-    return arr;
-  }, [items, sortBy]);
+  const sorted = items; // 서버 정렬 사용
 
   return (
     <RiderPageLayout>
@@ -117,15 +115,15 @@ function RouteComponent() {
                 <Button
                   variant='ghost'
                   size='sm'
-                  onClick={() => setSortBy('newest')}
-                  className={`h-8 rounded-xl px-3 text-[12px] font-semibold ${sortBy === 'newest' ? 'bg-white shadow' : ''}`}>
+                  onClick={() => setSortBy('LATEST')}
+                  className={`h-8 rounded-xl px-3 text-[12px] font-semibold ${sortBy === 'LATEST' ? 'bg-white shadow' : ''}`}>
                   최신 순
                 </Button>
                 <Button
                   variant='ghost'
                   size='sm'
-                  onClick={() => setSortBy('oldest')}
-                  className={`h-8 rounded-xl px-3 text-[12px] font-semibold ${sortBy === 'oldest' ? 'bg-white shadow' : ''}`}>
+                  onClick={() => setSortBy('OLDEST')}
+                  className={`h-8 rounded-xl px-3 text-[12px] font-semibold ${sortBy === 'OLDEST' ? 'bg-white shadow' : ''}`}>
                   오래된 순
                 </Button>
               </div>

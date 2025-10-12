@@ -1,5 +1,7 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { toast } from 'sonner';
+import { refreshToken as callRefresh } from '@/api/generated';
+import type { RefreshTokenRequest } from '@/api/generated/model/refreshTokenRequest';
 
 // Resolve API base URL from environment variables
 const { VITE_API_URL, VITE_SERVER_URL } = (import.meta as any).env ?? {};
@@ -22,6 +24,25 @@ function getAccessToken(): string | null {
   }
 }
 
+function getDeviceId(): string {
+  try {
+    if (typeof window === 'undefined') return 'web';
+    const key = 'device-id';
+    const existing = localStorage.getItem(key);
+    const id: string =
+      existing ??
+      ((crypto as any)?.randomUUID
+        ? (crypto as any).randomUUID()
+        : `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    if (!existing) {
+      localStorage.setItem(key, id);
+    }
+    return id;
+  } catch {
+    return 'web';
+  }
+}
+
 function createApiClient(): AxiosInstance {
   const instance = axios.create({
     baseURL: API_BASE_URL || undefined,
@@ -29,14 +50,29 @@ function createApiClient(): AxiosInstance {
     headers: {
       'Content-Type': 'application/json',
     },
+    withCredentials: true,
   });
 
   // Request interceptor: attach bearer token later when available
   instance.interceptors.request.use((config) => {
-    const token = getAccessToken();
-    if (token) {
+    // Decide whether this request requires auth
+    const skipByFlag = (config as any)?.withAuth === false || (config.headers as any)?.['X-Require-Auth'] === false;
+    const url = (config.url || '').toString();
+    const isAuthEndpoint = url.includes('/api/v1/auth/login') || url.includes('/api/v1/auth/refresh');
+
+    const shouldAttachAuth = !skipByFlag && !isAuthEndpoint;
+    if (shouldAttachAuth) {
+      const token = getAccessToken();
+      if (token) {
+        config.headers = config.headers ?? {};
+        (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+      }
+    }
+    // Always attach X-Device-ID for server-side subscription identification
+    const deviceId = getDeviceId();
+    if (deviceId) {
       config.headers = config.headers ?? {};
-      (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+      (config.headers as Record<string, string>)['X-Device-ID'] = deviceId;
     }
     return config;
   });
@@ -55,12 +91,31 @@ function createApiClient(): AxiosInstance {
             localStorage.setItem('auth', JSON.stringify(parsed));
           }
         }
+        // If server sets Set-Cookie for refresh token, withCredentials already ensures cookie persistence
       } catch {
         // ignore
       }
       return response;
     },
     (error: AxiosError<any>) => {
+      const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+      // 자동 재시도: 401 && 아직 미시도 && refresh 가능 상태
+      if (error.response?.status === 401 && !originalRequest?._retry) {
+        originalRequest._retry = true;
+        return triggerRefresh()
+          .then(() => {
+            // refresh 성공 후, Authorization 헤더는 인터셉터에서 저장됨. 원요청 재시도
+            return api.request(originalRequest);
+          })
+          .catch((refreshErr) => {
+            // refresh 실패 시 에러 토스트 후 전달
+            const msg = extractErrorMessage(error);
+            if (msg) toast.error(msg);
+            return Promise.reject(refreshErr);
+          });
+      }
+
       const message = extractErrorMessage(error);
       if (message) toast.error(message);
       return Promise.reject(error);
@@ -100,6 +155,20 @@ function extractErrorMessage(error: AxiosError<any>): string {
 }
 
 export const api = createApiClient();
+
+let refreshingPromise: Promise<unknown> | null = null;
+function triggerRefresh(): Promise<unknown> {
+  if (!refreshingPromise) {
+    refreshingPromise = callRefresh({} as RefreshTokenRequest)
+      .catch((err) => {
+        throw err;
+      })
+      .finally(() => {
+        refreshingPromise = null;
+      });
+  }
+  return refreshingPromise;
+}
 
 // Generic request helper (data 반환)
 export async function request<T = unknown>(config: AxiosRequestConfig): Promise<T> {

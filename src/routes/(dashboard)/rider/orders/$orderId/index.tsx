@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { useGetInProgressDetailDelivery, useUpdateStatus } from '@/api/generated';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/(dashboard)/rider/orders/$orderId/')({
   component: RouteComponent,
@@ -15,15 +17,47 @@ type OrderStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 function RouteComponent() {
   const { orderId } = Route.useParams();
   const [status, setStatus] = React.useState<OrderStatus>('IN_PROGRESS');
+  const deliveryId = Number(orderId);
+  const detailQuery = useGetInProgressDetailDelivery(deliveryId, {
+    query: { enabled: Number.isFinite(deliveryId), refetchInterval: 60_000, refetchOnWindowFocus: false },
+  } as any);
+  const detail = ((detailQuery.data as any)?.data?.content ?? undefined) as any;
+  const store = {
+    name: detail?.store?.name ?? '상점',
+    address: detail?.store?.address ?? detail?.storeAddress ?? '',
+    phone: detail?.store?.phone ?? detail?.storePhone ?? '',
+  };
+  const customer = {
+    nickname: detail?.customer?.nickname ?? detail?.customerName ?? '고객',
+    address: detail?.customer?.address ?? detail?.customerAddress ?? '',
+    phone: detail?.customer?.phone ?? detail?.customerPhone ?? '',
+  };
+  const rider = { lat: Number(detail?.riderLat ?? 37.5895), lng: Number(detail?.riderLng ?? 127.0167) };
+  const storePos = { lat: Number(detail?.storeLat ?? 37.5912), lng: Number(detail?.storeLng ?? 127.0193) };
+  const customerPos = { lat: Number(detail?.customerLat ?? 37.5868), lng: Number(detail?.customerLng ?? 127.0142) };
+  const eta = {
+    remainingMinutes: Number(detail?.etaRemainingMinutes ?? 0),
+    estimateMinutes: Number(detail?.etaTotalMinutes ?? 0),
+  };
+  const customerRequest = detail?.customerRequest ?? '요청 사항이 없습니다.';
 
-  // 스태틱 예시 데이터
-  const store = { name: '골목 마트', address: '서울 성북구 동소문로25길 12 1층', phone: '02-123-4567' };
-  const customer = { nickname: '맛있는 김치찜', address: '서울 성북구 돌곶이로 27 101호', phone: '010-1234-5678' };
-  const rider = { lat: 37.5895, lng: 127.0167 };
-  const storePos = { lat: 37.5912, lng: 127.0193 };
-  const customerPos = { lat: 37.5868, lng: 127.0142 };
-  const eta = { remainingMinutes: 7, estimateMinutes: 14 };
-  const customerRequest = '초인종 누르지 말고 전화 주세요';
+  const updateStatusMutation = useUpdateStatus({
+    mutation: {
+      onSuccess: async () => {
+        toast.success('배달 상태가 변경되었습니다.');
+        await detailQuery.refetch();
+      },
+      onError: (e: any) => {
+        toast.error(e?.message ?? '배달 상태 변경에 실패했습니다.');
+      },
+    },
+  } as any);
+
+  const handleChangeStatus = (next: OrderStatus) => {
+    setStatus(next);
+    if (!Number.isFinite(deliveryId)) return;
+    updateStatusMutation.mutate({ deliveryId, params: { nextStatus: next } } as any);
+  };
 
   return (
     <RiderPageLayout>
@@ -48,7 +82,7 @@ function RouteComponent() {
             </div>
             <div className='flex items-center justify-between'>
               <span className='text-[#6b7785]'>상태</span>
-              <Select value={status} onValueChange={(v) => setStatus(v as OrderStatus)}>
+              <Select value={status} onValueChange={(v) => handleChangeStatus(v as OrderStatus)}>
                 <SelectTrigger className='h-8 w-[140px] rounded-xl border-[#dbe4ec] text-[12px]'>
                   <SelectValue placeholder='상태 선택' />
                 </SelectTrigger>

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { RiderHeader } from './_components/RiderHeader';
+import { useGetMyProfile1, useGetDeliveryArea } from '@/api/generated';
 import { RiderFooterNav } from './_components/RiderFooterNav';
 import { Home, ClipboardList, History, User } from 'lucide-react';
 
@@ -11,6 +12,12 @@ interface RiderPageLayoutProps {
 export function RiderPageLayout({ children }: RiderPageLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const profileQuery = useGetMyProfile1();
+  const profile = ((profileQuery.data as any)?.data?.content ?? undefined) as
+    | { nickname?: string; profileImageUrl?: string }
+    | undefined;
+  const areaQuery = useGetDeliveryArea({ query: { staleTime: 10_000, refetchOnWindowFocus: false } } as any);
+  const deliveryArea = ((areaQuery.data as any)?.data?.content ?? '') as string;
   const items = [
     { label: '홈', to: '/rider', icon: Home },
     { label: '정산관리', to: '/rider/settlement', icon: ClipboardList },
@@ -27,8 +34,9 @@ export function RiderPageLayout({ children }: RiderPageLayoutProps) {
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
       <RiderHeader
-        nickname='뭐든라이더'
-        address='서울시 성북구 돌곶이로 27'
+        nickname={profile?.nickname || '뭐든라이더'}
+        profileImageUrl={profile?.profileImageUrl}
+        deliveryArea={deliveryArea || '배달 가능 지역을 설정해 주세요'}
         onClickAddress={() => navigate({ to: '/manage-address' })}
       />
       <main className='flex-1 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline-[1.5px] outline-[#2ac1bc]/15 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>

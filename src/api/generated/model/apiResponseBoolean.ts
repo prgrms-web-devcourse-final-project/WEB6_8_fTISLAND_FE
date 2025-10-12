@@ -5,11 +5,10 @@
  * 뭐든배달 API 명세서입니다
  * OpenAPI spec version: v1
  */
-import type { CursorPageResponseReviewResponse } from './cursorPageResponseReviewResponse';
 
-export interface ApiResponseCursorPageResponseReviewResponse {
+export interface ApiResponseBoolean {
   success?: boolean;
   code?: string;
   message?: string;
-  content?: CursorPageResponseReviewResponse;
+  content?: boolean;
 }

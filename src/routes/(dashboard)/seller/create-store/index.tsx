@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ChevronLeft } from 'lucide-react';
 import { SellerFooterNav } from '../_components/SellerFooterNav';
+import { useAuthStore, type AuthState } from '@/store/auth';
+import { usePresignedUpload } from '@/lib/usePresignedUpload';
+import { GeneratePresignedUrlRequestDomain } from '@/api/generated/model/generatePresignedUrlRequestDomain';
 
 export const Route = createFileRoute('/(dashboard)/seller/create-store/' as any)({
   component: RouteComponent,
@@ -32,11 +35,20 @@ async function fetchCategories(): Promise<Category[]> {
   try {
     const apiBase = (import.meta as any)?.env?.VITE_API_URL || 'https://api.deliver-anything.shop';
     const url = `${String(apiBase).replace(/\/$/, '')}/api/v1/store-categories`;
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      // 의도적으로 Authorization 미포함
-    });
+    const raw = localStorage.getItem('auth');
+    const token = raw
+      ? (() => {
+          try {
+            const parsed = JSON.parse(raw);
+            return (parsed?.state?.accessToken as string) || undefined;
+          } catch {
+            return undefined;
+          }
+        })()
+      : undefined;
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url, { method: 'GET', headers });
     if (!res.ok) return [];
     const data: ApiResponse<Category[]> | Category[] = await res.json();
     if (Array.isArray(data)) return data as Category[];
@@ -50,10 +62,10 @@ async function createStore(body: CreateStoreForm) {
   return await http.post('/api/v1/stores', body);
 }
 
-console.log(import.meta.env.VITE_KAKAO_JS_KEY);
-
 function RouteComponent() {
   const navigate = useNavigate();
+  const uploadMutation = usePresignedUpload();
+  const setAuth = useAuthStore((s: AuthState) => s.setAuth);
   const { data: categories = [], isLoading: catLoading } = useQuery({
     queryKey: ['store-categories'],
     queryFn: fetchCategories,
@@ -70,11 +82,15 @@ function RouteComponent() {
       imageUrl: '',
     },
   });
+  console.log(import.meta.env.VITE_KAKAO_JS_KEY);
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: createStore,
-    onSuccess: async () => {
-      // 상점 생성 완료 후 판매자 홈으로 이동
+    onSuccess: async (resp: any) => {
+      try {
+        const storeId = Number((resp as any)?.content ?? (resp as any)?.data?.content);
+        if (Number.isFinite(storeId)) setAuth({ storeId });
+      } catch {}
       navigate({ to: '/seller' });
     },
   });
@@ -189,6 +205,35 @@ function RouteComponent() {
               className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
               {...form.register('imageUrl')}
             />
+            <div className='flex items-center gap-2'>
+              <input
+                id='imageFile'
+                type='file'
+                accept='image/*'
+                className='block w-full text-[12px]'
+                onChange={async (e) => {
+                  const file = e.currentTarget.files?.[0];
+                  if (!file) return;
+                  const res = await uploadMutation.mutateAsync({
+                    file,
+                    domain: GeneratePresignedUrlRequestDomain.STORE,
+                    contentType: (file as any).type || 'application/octet-stream',
+                  });
+                  form.setValue('imageUrl', res.objectUrl);
+                }}
+              />
+              <Button
+                type='button'
+                variant='outline'
+                className='h-9 rounded-xl text-[12px]'
+                onClick={() => {
+                  const input = document.getElementById('imageFile') as HTMLInputElement | null;
+                  input?.click();
+                }}
+                disabled={uploadMutation.isPending}>
+                {uploadMutation.isPending ? '업로드 중…' : '이미지 업로드'}
+              </Button>
+            </div>
           </div>
 
           <div className='pt-2'>

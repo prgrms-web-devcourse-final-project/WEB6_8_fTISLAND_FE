@@ -26,13 +26,20 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountInfoUpdateRequest,
+  AddressCreateRequest,
+  AddressUpdateRequest,
+  ApiResponseAddressResponse,
+  ApiResponseAvailableProfilesResponse,
+  ApiResponseBoolean,
   ApiResponseCurrentDeliveringDetailsDto,
   ApiResponseCursorPageResponseOrderResponse,
   ApiResponseCursorPageResponseProductResponse,
-  ApiResponseCursorPageResponseReviewResponse,
   ApiResponseCursorPageResponseStoreSearchResponse,
+  ApiResponseCustomerProfileResponse,
   ApiResponseDeliveredSummaryResponseDto,
   ApiResponseGeneratePresignedUrlResponse,
+  ApiResponseListAddressResponse,
   ApiResponseListCurrentDeliveringResponseDto,
   ApiResponseListNotification,
   ApiResponseListOrderResponse,
@@ -43,20 +50,31 @@ import type {
   ApiResponseOrderResponse,
   ApiResponseProductDetailResponse,
   ApiResponseProductResponse,
+  ApiResponseProfileResponse,
   ApiResponseReviewCreateResponse,
   ApiResponseReviewLikeResponse,
+  ApiResponseReviewRatingAndListResponseDto,
   ApiResponseReviewResponse,
+  ApiResponseRiderProfileResponse,
+  ApiResponseSellerProfileResponse,
   ApiResponseSettlementResponse,
   ApiResponseSignupResponse,
   ApiResponseStockResponse,
   ApiResponseStoreResponse,
   ApiResponseString,
   ApiResponseSummaryResponse,
+  ApiResponseSwitchProfileResponse,
   ApiResponseTodayDeliveringResponseDto,
+  ApiResponseUserInfoResponse,
   ApiResponseVoid,
+  BusinessInfoUpdateRequest,
+  ChangePasswordRequest,
+  CreateProfileRequest,
+  CustomerProfileUpdateRequest,
   DeliveryAreaRequestDto,
   GeneratePresignedUrlRequest,
   GetAllParams,
+  GetMyReviewsParams,
   GetNotificationsParams,
   GetOrdersHistoryParams,
   GetPeriodSettlements1Params,
@@ -71,22 +89,1940 @@ import type {
   OrderPayRequest,
   ProductCreateRequest,
   ProductUpdateRequest,
+  RefreshTokenRequest,
   ReviewCreateRequest,
   ReviewUpdateRequest,
+  RiderAccountInfoUpdateRequest,
+  RiderAreaUpdateRequest,
   RiderDecisionRequestDto,
+  RiderProfileUpdateRequest,
+  RiderStatusUpdateRequest,
   RiderToggleStatusRequestDto,
   SearchProductsParams,
   SearchStoresParams,
+  SellerProfileUpdateRequest,
   SignupRequest,
   SseEmitter,
   StockUpdateRequest,
   StoreCreateRequest,
   StoreUpdateRequest,
   SubscribeParams,
+  SwitchProfileRequest,
   UpdateStatusParams,
+  UpdateUserRequest,
 } from './model';
 
 import { customInstance } from '../orval-mutator';
+/**
+ * 현재 로그인한 사용자의 상세 정보를 조회합니다.
+ * @summary 내 정보 조회
+ */
+export const getMyInfo = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseUserInfoResponse>({ url: `/api/v1/users/me`, method: 'GET', signal });
+};
+
+export const getGetMyInfoInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me`] as const;
+};
+
+export const getGetMyInfoQueryKey = () => {
+  return [`/api/v1/users/me`] as const;
+};
+
+export const getGetMyInfoInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyInfo>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyInfoInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyInfo>>> = ({ signal }) => getMyInfo(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getMyInfo>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyInfoInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyInfo>>>;
+export type GetMyInfoInfiniteQueryError = unknown;
+
+export function useGetMyInfoInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyInfo>>>, TError = unknown>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, Awaited<ReturnType<typeof getMyInfo>>>,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyInfoInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyInfo>>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyInfo>>,
+          TError,
+          Awaited<ReturnType<typeof getMyInfo>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyInfoInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyInfo>>>, TError = unknown>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 정보 조회
+ */
+
+export function useGetMyInfoInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyInfo>>>, TError = unknown>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyInfoInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetMyInfoQueryOptions = <TData = Awaited<ReturnType<typeof getMyInfo>>, TError = unknown>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyInfoQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyInfo>>> = ({ signal }) => getMyInfo(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyInfo>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyInfoQueryResult = NonNullable<Awaited<ReturnType<typeof getMyInfo>>>;
+export type GetMyInfoQueryError = unknown;
+
+export function useGetMyInfo<TData = Awaited<ReturnType<typeof getMyInfo>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, Awaited<ReturnType<typeof getMyInfo>>>,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyInfo<TData = Awaited<ReturnType<typeof getMyInfo>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyInfo>>,
+          TError,
+          Awaited<ReturnType<typeof getMyInfo>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyInfo<TData = Awaited<ReturnType<typeof getMyInfo>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 정보 조회
+ */
+
+export function useGetMyInfo<TData = Awaited<ReturnType<typeof getMyInfo>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyInfo>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyInfoQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 사용자 이름, 전화번호 등 기본 정보를 수정합니다.
+ * @summary 내 정보 수정
+ */
+export const updateMyInfo = (updateUserRequest: UpdateUserRequest) => {
+  return customInstance<ApiResponseUserInfoResponse>({
+    url: `/api/v1/users/me`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: updateUserRequest,
+  });
+};
+
+export const getUpdateMyInfoMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMyInfo>>,
+    TError,
+    { data: UpdateUserRequest },
+    TContext
+  >;
+}): UseMutationOptions<Awaited<ReturnType<typeof updateMyInfo>>, TError, { data: UpdateUserRequest }, TContext> => {
+  const mutationKey = ['updateMyInfo'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyInfo>>, { data: UpdateUserRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return updateMyInfo(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMyInfoMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyInfo>>>;
+export type UpdateMyInfoMutationBody = UpdateUserRequest;
+export type UpdateMyInfoMutationError = unknown;
+
+/**
+ * @summary 내 정보 수정
+ */
+export const useUpdateMyInfo = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateMyInfo>>,
+      TError,
+      { data: UpdateUserRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof updateMyInfo>>, TError, { data: UpdateUserRequest }, TContext> => {
+  const mutationOptions = getUpdateMyInfoMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 현재 활성화된 판매자 프로필의 상세 정보를 조회합니다.
+ * @summary 내 판매자 프로필 조회
+ */
+export const getMyProfile = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseSellerProfileResponse>({ url: `/api/v1/users/me/seller`, method: 'GET', signal });
+};
+
+export const getGetMyProfileInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me/seller`] as const;
+};
+
+export const getGetMyProfileQueryKey = () => {
+  return [`/api/v1/users/me/seller`] as const;
+};
+
+export const getGetMyProfileInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyProfileInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyProfile>>> = ({ signal }) => getMyProfile(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getMyProfile>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyProfileInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyProfile>>>;
+export type GetMyProfileInfiniteQueryError = unknown;
+
+export function useGetMyProfileInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfileInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfileInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 판매자 프로필 조회
+ */
+
+export function useGetMyProfileInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyProfileInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetMyProfileQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyProfile>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyProfileQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyProfile>>> = ({ signal }) => getMyProfile(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyProfile>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getMyProfile>>>;
+export type GetMyProfileQueryError = unknown;
+
+export function useGetMyProfile<TData = Awaited<ReturnType<typeof getMyProfile>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile<TData = Awaited<ReturnType<typeof getMyProfile>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile<TData = Awaited<ReturnType<typeof getMyProfile>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 판매자 프로필 조회
+ */
+
+export function useGetMyProfile<TData = Awaited<ReturnType<typeof getMyProfile>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyProfileQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 판매자 프로필의 닉네임, 프로필 이미지를 수정합니다.
+ * @summary 내 판매자 프로필 수정
+ */
+export const updateMyProfile = (sellerProfileUpdateRequest: SellerProfileUpdateRequest) => {
+  return customInstance<ApiResponseSellerProfileResponse>({
+    url: `/api/v1/users/me/seller`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: sellerProfileUpdateRequest,
+  });
+};
+
+export const getUpdateMyProfileMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMyProfile>>,
+    TError,
+    { data: SellerProfileUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMyProfile>>,
+  TError,
+  { data: SellerProfileUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateMyProfile'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMyProfile>>,
+    { data: SellerProfileUpdateRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateMyProfile(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMyProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyProfile>>>;
+export type UpdateMyProfileMutationBody = SellerProfileUpdateRequest;
+export type UpdateMyProfileMutationError = unknown;
+
+/**
+ * @summary 내 판매자 프로필 수정
+ */
+export const useUpdateMyProfile = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateMyProfile>>,
+      TError,
+      { data: SellerProfileUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateMyProfile>>,
+  TError,
+  { data: SellerProfileUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateMyProfileMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 사업자명, 사업자 전화번호를 수정합니다.
+ * @summary 사업자 정보 수정
+ */
+export const updateBusinessInfo = (businessInfoUpdateRequest: BusinessInfoUpdateRequest) => {
+  return customInstance<ApiResponseSellerProfileResponse>({
+    url: `/api/v1/users/me/seller/business-info`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: businessInfoUpdateRequest,
+  });
+};
+
+export const getUpdateBusinessInfoMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBusinessInfo>>,
+    TError,
+    { data: BusinessInfoUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateBusinessInfo>>,
+  TError,
+  { data: BusinessInfoUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateBusinessInfo'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateBusinessInfo>>,
+    { data: BusinessInfoUpdateRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateBusinessInfo(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateBusinessInfoMutationResult = NonNullable<Awaited<ReturnType<typeof updateBusinessInfo>>>;
+export type UpdateBusinessInfoMutationBody = BusinessInfoUpdateRequest;
+export type UpdateBusinessInfoMutationError = unknown;
+
+/**
+ * @summary 사업자 정보 수정
+ */
+export const useUpdateBusinessInfo = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateBusinessInfo>>,
+      TError,
+      { data: BusinessInfoUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateBusinessInfo>>,
+  TError,
+  { data: BusinessInfoUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateBusinessInfoMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 은행명, 계좌번호, 예금주를 수정합니다.
+ * @summary 정산 계좌 정보 수정
+ */
+export const updateAccountInfo = (accountInfoUpdateRequest: AccountInfoUpdateRequest) => {
+  return customInstance<ApiResponseSellerProfileResponse>({
+    url: `/api/v1/users/me/seller/account-info`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: accountInfoUpdateRequest,
+  });
+};
+
+export const getUpdateAccountInfoMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAccountInfo>>,
+    TError,
+    { data: AccountInfoUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAccountInfo>>,
+  TError,
+  { data: AccountInfoUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateAccountInfo'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAccountInfo>>,
+    { data: AccountInfoUpdateRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateAccountInfo(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAccountInfoMutationResult = NonNullable<Awaited<ReturnType<typeof updateAccountInfo>>>;
+export type UpdateAccountInfoMutationBody = AccountInfoUpdateRequest;
+export type UpdateAccountInfoMutationError = unknown;
+
+/**
+ * @summary 정산 계좌 정보 수정
+ */
+export const useUpdateAccountInfo = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateAccountInfo>>,
+      TError,
+      { data: AccountInfoUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateAccountInfo>>,
+  TError,
+  { data: AccountInfoUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateAccountInfoMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 현재 활성화된 배달원 프로필의 상세 정보를 조회합니다.
+ * @summary 내 배달원 프로필 조회
+ */
+export const getMyProfile1 = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseRiderProfileResponse>({ url: `/api/v1/users/me/rider`, method: 'GET', signal });
+};
+
+export const getGetMyProfile1InfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me/rider`] as const;
+};
+
+export const getGetMyProfile1QueryKey = () => {
+  return [`/api/v1/users/me/rider`] as const;
+};
+
+export const getGetMyProfile1InfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile1>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyProfile1InfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyProfile1>>> = ({ signal }) => getMyProfile1(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getMyProfile1>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyProfile1InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyProfile1>>>;
+export type GetMyProfile1InfiniteQueryError = unknown;
+
+export function useGetMyProfile1Infinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile1>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile1>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile1>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile1Infinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile1>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile1>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile1>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile1Infinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile1>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 배달원 프로필 조회
+ */
+
+export function useGetMyProfile1Infinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile1>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyProfile1InfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetMyProfile1QueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyProfile1>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyProfile1QueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyProfile1>>> = ({ signal }) => getMyProfile1(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyProfile1>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyProfile1QueryResult = NonNullable<Awaited<ReturnType<typeof getMyProfile1>>>;
+export type GetMyProfile1QueryError = unknown;
+
+export function useGetMyProfile1<TData = Awaited<ReturnType<typeof getMyProfile1>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile1>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile1>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile1<TData = Awaited<ReturnType<typeof getMyProfile1>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile1>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile1>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile1<TData = Awaited<ReturnType<typeof getMyProfile1>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 배달원 프로필 조회
+ */
+
+export function useGetMyProfile1<TData = Awaited<ReturnType<typeof getMyProfile1>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile1>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyProfile1QueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 배달원 프로필의 닉네임, 프로필 이미지를 수정합니다.
+ * @summary 내 배달원 프로필 수정
+ */
+export const updateMyProfile1 = (riderProfileUpdateRequest: RiderProfileUpdateRequest) => {
+  return customInstance<ApiResponseRiderProfileResponse>({
+    url: `/api/v1/users/me/rider`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: riderProfileUpdateRequest,
+  });
+};
+
+export const getUpdateMyProfile1MutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMyProfile1>>,
+    TError,
+    { data: RiderProfileUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMyProfile1>>,
+  TError,
+  { data: RiderProfileUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateMyProfile1'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMyProfile1>>,
+    { data: RiderProfileUpdateRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateMyProfile1(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMyProfile1MutationResult = NonNullable<Awaited<ReturnType<typeof updateMyProfile1>>>;
+export type UpdateMyProfile1MutationBody = RiderProfileUpdateRequest;
+export type UpdateMyProfile1MutationError = unknown;
+
+/**
+ * @summary 내 배달원 프로필 수정
+ */
+export const useUpdateMyProfile1 = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateMyProfile1>>,
+      TError,
+      { data: RiderProfileUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateMyProfile1>>,
+  TError,
+  { data: RiderProfileUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateMyProfile1MutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 배달 상태를 ON 또는 OFF로 직접 설정합니다.
+ * @summary 배달 상태 설정
+ */
+export const updateDeliveryStatus = (riderStatusUpdateRequest: RiderStatusUpdateRequest) => {
+  return customInstance<ApiResponseRiderProfileResponse>({
+    url: `/api/v1/users/me/rider/status`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: riderStatusUpdateRequest,
+  });
+};
+
+export const getUpdateDeliveryStatusMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDeliveryStatus>>,
+    TError,
+    { data: RiderStatusUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDeliveryStatus>>,
+  TError,
+  { data: RiderStatusUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateDeliveryStatus'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDeliveryStatus>>,
+    { data: RiderStatusUpdateRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateDeliveryStatus(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDeliveryStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateDeliveryStatus>>>;
+export type UpdateDeliveryStatusMutationBody = RiderStatusUpdateRequest;
+export type UpdateDeliveryStatusMutationError = unknown;
+
+/**
+ * @summary 배달 상태 설정
+ */
+export const useUpdateDeliveryStatus = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateDeliveryStatus>>,
+      TError,
+      { data: RiderStatusUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateDeliveryStatus>>,
+  TError,
+  { data: RiderStatusUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateDeliveryStatusMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 현재 설정된 활동 지역을 조회합니다.
+ * @summary 활동 지역 조회
+ */
+export const getDeliveryArea = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseString>({ url: `/api/v1/users/me/rider/area`, method: 'GET', signal });
+};
+
+export const getGetDeliveryAreaInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me/rider/area`] as const;
+};
+
+export const getGetDeliveryAreaQueryKey = () => {
+  return [`/api/v1/users/me/rider/area`] as const;
+};
+
+export const getGetDeliveryAreaInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getDeliveryArea>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDeliveryAreaInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDeliveryArea>>> = ({ signal }) => getDeliveryArea(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getDeliveryArea>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDeliveryAreaInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getDeliveryArea>>>;
+export type GetDeliveryAreaInfiniteQueryError = unknown;
+
+export function useGetDeliveryAreaInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getDeliveryArea>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDeliveryArea>>,
+          TError,
+          Awaited<ReturnType<typeof getDeliveryArea>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDeliveryAreaInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getDeliveryArea>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDeliveryArea>>,
+          TError,
+          Awaited<ReturnType<typeof getDeliveryArea>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDeliveryAreaInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getDeliveryArea>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 활동 지역 조회
+ */
+
+export function useGetDeliveryAreaInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getDeliveryArea>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDeliveryAreaInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetDeliveryAreaQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDeliveryArea>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDeliveryAreaQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDeliveryArea>>> = ({ signal }) => getDeliveryArea(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDeliveryArea>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDeliveryAreaQueryResult = NonNullable<Awaited<ReturnType<typeof getDeliveryArea>>>;
+export type GetDeliveryAreaQueryError = unknown;
+
+export function useGetDeliveryArea<TData = Awaited<ReturnType<typeof getDeliveryArea>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDeliveryArea>>,
+          TError,
+          Awaited<ReturnType<typeof getDeliveryArea>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDeliveryArea<TData = Awaited<ReturnType<typeof getDeliveryArea>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDeliveryArea>>,
+          TError,
+          Awaited<ReturnType<typeof getDeliveryArea>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDeliveryArea<TData = Awaited<ReturnType<typeof getDeliveryArea>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 활동 지역 조회
+ */
+
+export function useGetDeliveryArea<TData = Awaited<ReturnType<typeof getDeliveryArea>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDeliveryArea>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDeliveryAreaQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 배달원의 활동 지역을 변경합니다.
+ * @summary 활동 지역 수정
+ */
+export const updateDeliveryArea = (riderAreaUpdateRequest: RiderAreaUpdateRequest) => {
+  return customInstance<ApiResponseRiderProfileResponse>({
+    url: `/api/v1/users/me/rider/area`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: riderAreaUpdateRequest,
+  });
+};
+
+export const getUpdateDeliveryAreaMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDeliveryArea>>,
+    TError,
+    { data: RiderAreaUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDeliveryArea>>,
+  TError,
+  { data: RiderAreaUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateDeliveryArea'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDeliveryArea>>,
+    { data: RiderAreaUpdateRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateDeliveryArea(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDeliveryAreaMutationResult = NonNullable<Awaited<ReturnType<typeof updateDeliveryArea>>>;
+export type UpdateDeliveryAreaMutationBody = RiderAreaUpdateRequest;
+export type UpdateDeliveryAreaMutationError = unknown;
+
+/**
+ * @summary 활동 지역 수정
+ */
+export const useUpdateDeliveryArea = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateDeliveryArea>>,
+      TError,
+      { data: RiderAreaUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateDeliveryArea>>,
+  TError,
+  { data: RiderAreaUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateDeliveryAreaMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 은행명, 계좌번호, 예금주를 수정합니다.
+ * @summary 정산 계좌 정보 수정
+ */
+export const updateAccountInfo1 = (riderAccountInfoUpdateRequest: RiderAccountInfoUpdateRequest) => {
+  return customInstance<ApiResponseRiderProfileResponse>({
+    url: `/api/v1/users/me/rider/account-info`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: riderAccountInfoUpdateRequest,
+  });
+};
+
+export const getUpdateAccountInfo1MutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAccountInfo1>>,
+    TError,
+    { data: RiderAccountInfoUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAccountInfo1>>,
+  TError,
+  { data: RiderAccountInfoUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateAccountInfo1'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAccountInfo1>>,
+    { data: RiderAccountInfoUpdateRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateAccountInfo1(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAccountInfo1MutationResult = NonNullable<Awaited<ReturnType<typeof updateAccountInfo1>>>;
+export type UpdateAccountInfo1MutationBody = RiderAccountInfoUpdateRequest;
+export type UpdateAccountInfo1MutationError = unknown;
+
+/**
+ * @summary 정산 계좌 정보 수정
+ */
+export const useUpdateAccountInfo1 = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateAccountInfo1>>,
+      TError,
+      { data: RiderAccountInfoUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateAccountInfo1>>,
+  TError,
+  { data: RiderAccountInfoUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateAccountInfo1MutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 현재 비밀번호를 확인하고 새로운 비밀번호로 변경합니다.
+ * @summary 비밀번호 변경
+ */
+export const changePassword = (changePasswordRequest: ChangePasswordRequest) => {
+  return customInstance<ApiResponseVoid>({
+    url: `/api/v1/users/me/password`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: changePasswordRequest,
+  });
+};
+
+export const getChangePasswordMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof changePassword>>,
+    TError,
+    { data: ChangePasswordRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof changePassword>>,
+  TError,
+  { data: ChangePasswordRequest },
+  TContext
+> => {
+  const mutationKey = ['changePassword'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof changePassword>>, { data: ChangePasswordRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return changePassword(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changePassword>>>;
+export type ChangePasswordMutationBody = ChangePasswordRequest;
+export type ChangePasswordMutationError = unknown;
+
+/**
+ * @summary 비밀번호 변경
+ */
+export const useChangePassword = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof changePassword>>,
+      TError,
+      { data: ChangePasswordRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof changePassword>>, TError, { data: ChangePasswordRequest }, TContext> => {
+  const mutationOptions = getChangePasswordMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 현재 활성화된 고객 프로필의 상세 정보를 조회합니다.
+ * @summary 내 고객 프로필 조회
+ */
+export const getMyProfile2 = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseCustomerProfileResponse>({
+    url: `/api/v1/users/me/customer`,
+    method: 'GET',
+    signal,
+  });
+};
+
+export const getGetMyProfile2InfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me/customer`] as const;
+};
+
+export const getGetMyProfile2QueryKey = () => {
+  return [`/api/v1/users/me/customer`] as const;
+};
+
+export const getGetMyProfile2InfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile2>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyProfile2InfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyProfile2>>> = ({ signal }) => getMyProfile2(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getMyProfile2>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyProfile2InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyProfile2>>>;
+export type GetMyProfile2InfiniteQueryError = unknown;
+
+export function useGetMyProfile2Infinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile2>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile2>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile2>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile2Infinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile2>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile2>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile2>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile2Infinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile2>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 고객 프로필 조회
+ */
+
+export function useGetMyProfile2Infinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyProfile2>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyProfile2InfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetMyProfile2QueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyProfile2>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyProfile2QueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyProfile2>>> = ({ signal }) => getMyProfile2(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyProfile2>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyProfile2QueryResult = NonNullable<Awaited<ReturnType<typeof getMyProfile2>>>;
+export type GetMyProfile2QueryError = unknown;
+
+export function useGetMyProfile2<TData = Awaited<ReturnType<typeof getMyProfile2>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile2>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile2>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile2<TData = Awaited<ReturnType<typeof getMyProfile2>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyProfile2>>,
+          TError,
+          Awaited<ReturnType<typeof getMyProfile2>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyProfile2<TData = Awaited<ReturnType<typeof getMyProfile2>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 고객 프로필 조회
+ */
+
+export function useGetMyProfile2<TData = Awaited<ReturnType<typeof getMyProfile2>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyProfile2>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyProfile2QueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 고객 프로필의 닉네임, 프로필 이미지를 수정합니다.
+ * @summary 내 고객 프로필 수정
+ */
+export const updateMyProfile2 = (customerProfileUpdateRequest: CustomerProfileUpdateRequest) => {
+  return customInstance<ApiResponseCustomerProfileResponse>({
+    url: `/api/v1/users/me/customer`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: customerProfileUpdateRequest,
+  });
+};
+
+export const getUpdateMyProfile2MutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMyProfile2>>,
+    TError,
+    { data: CustomerProfileUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMyProfile2>>,
+  TError,
+  { data: CustomerProfileUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateMyProfile2'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMyProfile2>>,
+    { data: CustomerProfileUpdateRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateMyProfile2(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMyProfile2MutationResult = NonNullable<Awaited<ReturnType<typeof updateMyProfile2>>>;
+export type UpdateMyProfile2MutationBody = CustomerProfileUpdateRequest;
+export type UpdateMyProfile2MutationError = unknown;
+
+/**
+ * @summary 내 고객 프로필 수정
+ */
+export const useUpdateMyProfile2 = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateMyProfile2>>,
+      TError,
+      { data: CustomerProfileUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateMyProfile2>>,
+  TError,
+  { data: CustomerProfileUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateMyProfile2MutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 배송지 ID로 특정 배송지의 상세 정보를 조회합니다.
+ * @summary 특정 배송지 조회
+ */
+export const getAddress = (addressId: number, signal?: AbortSignal) => {
+  return customInstance<ApiResponseAddressResponse>({
+    url: `/api/v1/users/me/customer/addresses/${addressId}`,
+    method: 'GET',
+    signal,
+  });
+};
+
+export const getGetAddressInfiniteQueryKey = (addressId?: number) => {
+  return ['infinate', `/api/v1/users/me/customer/addresses/${addressId}`] as const;
+};
+
+export const getGetAddressQueryKey = (addressId?: number) => {
+  return [`/api/v1/users/me/customer/addresses/${addressId}`] as const;
+};
+
+export const getGetAddressInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getAddress>>>,
+  TError = unknown,
+>(
+  addressId: number,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAddressInfiniteQueryKey(addressId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAddress>>> = ({ signal }) => getAddress(addressId, signal);
+
+  return { queryKey, queryFn, enabled: !!addressId, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getAddress>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetAddressInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getAddress>>>;
+export type GetAddressInfiniteQueryError = unknown;
+
+export function useGetAddressInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAddress>>>, TError = unknown>(
+  addressId: number,
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAddress>>,
+          TError,
+          Awaited<ReturnType<typeof getAddress>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetAddressInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAddress>>>, TError = unknown>(
+  addressId: number,
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAddress>>,
+          TError,
+          Awaited<ReturnType<typeof getAddress>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetAddressInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAddress>>>, TError = unknown>(
+  addressId: number,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 특정 배송지 조회
+ */
+
+export function useGetAddressInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAddress>>>, TError = unknown>(
+  addressId: number,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetAddressInfiniteQueryOptions(addressId, options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetAddressQueryOptions = <TData = Awaited<ReturnType<typeof getAddress>>, TError = unknown>(
+  addressId: number,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAddressQueryKey(addressId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAddress>>> = ({ signal }) => getAddress(addressId, signal);
+
+  return { queryKey, queryFn, enabled: !!addressId, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAddress>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetAddressQueryResult = NonNullable<Awaited<ReturnType<typeof getAddress>>>;
+export type GetAddressQueryError = unknown;
+
+export function useGetAddress<TData = Awaited<ReturnType<typeof getAddress>>, TError = unknown>(
+  addressId: number,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAddress>>,
+          TError,
+          Awaited<ReturnType<typeof getAddress>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetAddress<TData = Awaited<ReturnType<typeof getAddress>>, TError = unknown>(
+  addressId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAddress>>,
+          TError,
+          Awaited<ReturnType<typeof getAddress>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetAddress<TData = Awaited<ReturnType<typeof getAddress>>, TError = unknown>(
+  addressId: number,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 특정 배송지 조회
+ */
+
+export function useGetAddress<TData = Awaited<ReturnType<typeof getAddress>>, TError = unknown>(
+  addressId: number,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAddress>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetAddressQueryOptions(addressId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 기존 배송지의 정보를 수정합니다.
+ * @summary 배송지 수정
+ */
+export const updateAddress = (addressId: number, addressUpdateRequest: AddressUpdateRequest) => {
+  return customInstance<ApiResponseAddressResponse>({
+    url: `/api/v1/users/me/customer/addresses/${addressId}`,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    data: addressUpdateRequest,
+  });
+};
+
+export const getUpdateAddressMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAddress>>,
+    TError,
+    { addressId: number; data: AddressUpdateRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAddress>>,
+  TError,
+  { addressId: number; data: AddressUpdateRequest },
+  TContext
+> => {
+  const mutationKey = ['updateAddress'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAddress>>,
+    { addressId: number; data: AddressUpdateRequest }
+  > = (props) => {
+    const { addressId, data } = props ?? {};
+
+    return updateAddress(addressId, data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAddressMutationResult = NonNullable<Awaited<ReturnType<typeof updateAddress>>>;
+export type UpdateAddressMutationBody = AddressUpdateRequest;
+export type UpdateAddressMutationError = unknown;
+
+/**
+ * @summary 배송지 수정
+ */
+export const useUpdateAddress = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof updateAddress>>,
+      TError,
+      { addressId: number; data: AddressUpdateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof updateAddress>>,
+  TError,
+  { addressId: number; data: AddressUpdateRequest },
+  TContext
+> => {
+  const mutationOptions = getUpdateAddressMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 배송지를 삭제합니다. 기본 배송지는 삭제할 수 없습니다.
+ * @summary 배송지 삭제
+ */
+export const deleteAddress = (addressId: number) => {
+  return customInstance<ApiResponseVoid>({ url: `/api/v1/users/me/customer/addresses/${addressId}`, method: 'DELETE' });
+};
+
+export const getDeleteAddressMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAddress>>, TError, { addressId: number }, TContext>;
+}): UseMutationOptions<Awaited<ReturnType<typeof deleteAddress>>, TError, { addressId: number }, TContext> => {
+  const mutationKey = ['deleteAddress'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAddress>>, { addressId: number }> = (props) => {
+    const { addressId } = props ?? {};
+
+    return deleteAddress(addressId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAddressMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAddress>>>;
+
+export type DeleteAddressMutationError = unknown;
+
+/**
+ * @summary 배송지 삭제
+ */
+export const useDeleteAddress = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAddress>>, TError, { addressId: number }, TContext>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof deleteAddress>>, TError, { addressId: number }, TContext> => {
+  const mutationOptions = getDeleteAddressMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 특정 배송지를 기본 배송지로 설정합니다.
+ * @summary 기본 배송지 설정
+ */
+export const setDefaultAddress = (addressId: number) => {
+  return customInstance<ApiResponseVoid>({
+    url: `/api/v1/users/me/customer/addresses/${addressId}/default`,
+    method: 'PUT',
+  });
+};
+
+export const getSetDefaultAddressMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof setDefaultAddress>>, TError, { addressId: number }, TContext>;
+}): UseMutationOptions<Awaited<ReturnType<typeof setDefaultAddress>>, TError, { addressId: number }, TContext> => {
+  const mutationKey = ['setDefaultAddress'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof setDefaultAddress>>, { addressId: number }> = (
+    props
+  ) => {
+    const { addressId } = props ?? {};
+
+    return setDefaultAddress(addressId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetDefaultAddressMutationResult = NonNullable<Awaited<ReturnType<typeof setDefaultAddress>>>;
+
+export type SetDefaultAddressMutationError = unknown;
+
+/**
+ * @summary 기본 배송지 설정
+ */
+export const useSetDefaultAddress = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof setDefaultAddress>>,
+      TError,
+      { addressId: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof setDefaultAddress>>, TError, { addressId: number }, TContext> => {
+  const mutationOptions = getSetDefaultAddressMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
 /**
  * 특정 상점의 정보를 조회합니다.
  * @summary 상점 단건 조회
@@ -955,6 +2891,602 @@ export const useUpdateProductStock = <TError = unknown, TContext = unknown>(
 };
 
 /**
+ * 배달 상태를 ON ↔ OFF로 전환합니다.
+ * @summary 배달 상태 토글
+ */
+export const toggleDeliveryStatus = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseRiderProfileResponse>({
+    url: `/api/v1/users/me/rider/toggle`,
+    method: 'POST',
+    signal,
+  });
+};
+
+export const getToggleDeliveryStatusMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof toggleDeliveryStatus>>, TError, void, TContext>;
+}): UseMutationOptions<Awaited<ReturnType<typeof toggleDeliveryStatus>>, TError, void, TContext> => {
+  const mutationKey = ['toggleDeliveryStatus'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof toggleDeliveryStatus>>, void> = () => {
+    return toggleDeliveryStatus();
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ToggleDeliveryStatusMutationResult = NonNullable<Awaited<ReturnType<typeof toggleDeliveryStatus>>>;
+
+export type ToggleDeliveryStatusMutationError = unknown;
+
+/**
+ * @summary 배달 상태 토글
+ */
+export const useToggleDeliveryStatus = <TError = unknown, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof toggleDeliveryStatus>>, TError, void, TContext> },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof toggleDeliveryStatus>>, TError, void, TContext> => {
+  const mutationOptions = getToggleDeliveryStatusMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 현재 사용자가 보유한 모든 활성 프로필 목록과 현재 활성화된 프로필을 조회합니다.
+ * @summary 사용 가능한 프로필 목록 조회
+ */
+export const getAvailableProfiles = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseAvailableProfilesResponse>({
+    url: `/api/v1/users/me/profiles`,
+    method: 'GET',
+    signal,
+  });
+};
+
+export const getGetAvailableProfilesInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me/profiles`] as const;
+};
+
+export const getGetAvailableProfilesQueryKey = () => {
+  return [`/api/v1/users/me/profiles`] as const;
+};
+
+export const getGetAvailableProfilesInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getAvailableProfiles>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAvailableProfilesInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAvailableProfiles>>> = ({ signal }) =>
+    getAvailableProfiles(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getAvailableProfiles>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetAvailableProfilesInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getAvailableProfiles>>>;
+export type GetAvailableProfilesInfiniteQueryError = unknown;
+
+export function useGetAvailableProfilesInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getAvailableProfiles>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAvailableProfiles>>,
+          TError,
+          Awaited<ReturnType<typeof getAvailableProfiles>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetAvailableProfilesInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getAvailableProfiles>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAvailableProfiles>>,
+          TError,
+          Awaited<ReturnType<typeof getAvailableProfiles>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetAvailableProfilesInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getAvailableProfiles>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>>;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 사용 가능한 프로필 목록 조회
+ */
+
+export function useGetAvailableProfilesInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getAvailableProfiles>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>>;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetAvailableProfilesInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetAvailableProfilesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAvailableProfiles>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAvailableProfilesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAvailableProfiles>>> = ({ signal }) =>
+    getAvailableProfiles(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAvailableProfiles>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetAvailableProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof getAvailableProfiles>>>;
+export type GetAvailableProfilesQueryError = unknown;
+
+export function useGetAvailableProfiles<TData = Awaited<ReturnType<typeof getAvailableProfiles>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAvailableProfiles>>,
+          TError,
+          Awaited<ReturnType<typeof getAvailableProfiles>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetAvailableProfiles<TData = Awaited<ReturnType<typeof getAvailableProfiles>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAvailableProfiles>>,
+          TError,
+          Awaited<ReturnType<typeof getAvailableProfiles>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetAvailableProfiles<TData = Awaited<ReturnType<typeof getAvailableProfiles>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 사용 가능한 프로필 목록 조회
+ */
+
+export function useGetAvailableProfiles<TData = Awaited<ReturnType<typeof getAvailableProfiles>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAvailableProfiles>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetAvailableProfilesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 새로운 프로필을 생성합니다. 첫 번째 프로필이든 추가 프로필이든 동일하게 처리됩니다.
+ * @summary 프로필 생성
+ */
+export const createProfile = (createProfileRequest: CreateProfileRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponseProfileResponse>({
+    url: `/api/v1/users/me/profiles`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: createProfileRequest,
+    signal,
+  });
+};
+
+export const getCreateProfileMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProfile>>,
+    TError,
+    { data: CreateProfileRequest },
+    TContext
+  >;
+}): UseMutationOptions<Awaited<ReturnType<typeof createProfile>>, TError, { data: CreateProfileRequest }, TContext> => {
+  const mutationKey = ['createProfile'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProfile>>, { data: CreateProfileRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return createProfile(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateProfileMutationResult = NonNullable<Awaited<ReturnType<typeof createProfile>>>;
+export type CreateProfileMutationBody = CreateProfileRequest;
+export type CreateProfileMutationError = unknown;
+
+/**
+ * @summary 프로필 생성
+ */
+export const useCreateProfile = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createProfile>>,
+      TError,
+      { data: CreateProfileRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof createProfile>>, TError, { data: CreateProfileRequest }, TContext> => {
+  const mutationOptions = getCreateProfileMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 사용자가 보유한 다른 프로필로 전환합니다. 프로필 전환 시 새로운 Access Token이 자동으로 발급되며, 판매자 프로필인 경우 storeId와 프로필 상세 정보도 함께 반환됩니다.
+ * @summary 프로필 전환
+ */
+export const switchProfile = (switchProfileRequest: SwitchProfileRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponseSwitchProfileResponse>({
+    url: `/api/v1/users/me/profile/switch`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: switchProfileRequest,
+    signal,
+  });
+};
+
+export const getSwitchProfileMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof switchProfile>>,
+    TError,
+    { data: SwitchProfileRequest },
+    TContext
+  >;
+}): UseMutationOptions<Awaited<ReturnType<typeof switchProfile>>, TError, { data: SwitchProfileRequest }, TContext> => {
+  const mutationKey = ['switchProfile'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof switchProfile>>, { data: SwitchProfileRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return switchProfile(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SwitchProfileMutationResult = NonNullable<Awaited<ReturnType<typeof switchProfile>>>;
+export type SwitchProfileMutationBody = SwitchProfileRequest;
+export type SwitchProfileMutationError = unknown;
+
+/**
+ * @summary 프로필 전환
+ */
+export const useSwitchProfile = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof switchProfile>>,
+      TError,
+      { data: SwitchProfileRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof switchProfile>>, TError, { data: SwitchProfileRequest }, TContext> => {
+  const mutationOptions = getSwitchProfileMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 현재 고객 프로필에 등록된 모든 배송지를 조회합니다.
+ * @summary 내 배송지 목록 조회
+ */
+export const getMyAddresses = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseListAddressResponse>({
+    url: `/api/v1/users/me/customer/addresses`,
+    method: 'GET',
+    signal,
+  });
+};
+
+export const getGetMyAddressesInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me/customer/addresses`] as const;
+};
+
+export const getGetMyAddressesQueryKey = () => {
+  return [`/api/v1/users/me/customer/addresses`] as const;
+};
+
+export const getGetMyAddressesInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyAddresses>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyAddressesInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAddresses>>> = ({ signal }) => getMyAddresses(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getMyAddresses>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyAddressesInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAddresses>>>;
+export type GetMyAddressesInfiniteQueryError = unknown;
+
+export function useGetMyAddressesInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyAddresses>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAddresses>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAddresses>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyAddressesInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyAddresses>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAddresses>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAddresses>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyAddressesInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyAddresses>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 배송지 목록 조회
+ */
+
+export function useGetMyAddressesInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyAddresses>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyAddressesInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetMyAddressesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyAddresses>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyAddressesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAddresses>>> = ({ signal }) => getMyAddresses(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyAddresses>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyAddressesQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAddresses>>>;
+export type GetMyAddressesQueryError = unknown;
+
+export function useGetMyAddresses<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAddresses>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAddresses>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyAddresses<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAddresses>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAddresses>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyAddresses<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 배송지 목록 조회
+ */
+
+export function useGetMyAddresses<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyAddressesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 새로운 배송지를 추가합니다. 첫 번째 배송지는 자동으로 기본 배송지로 설정됩니다.
+ * @summary 배송지 추가
+ */
+export const addAddress = (addressCreateRequest: AddressCreateRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponseAddressResponse>({
+    url: `/api/v1/users/me/customer/addresses`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: addressCreateRequest,
+    signal,
+  });
+};
+
+export const getAddAddressMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addAddress>>,
+    TError,
+    { data: AddressCreateRequest },
+    TContext
+  >;
+}): UseMutationOptions<Awaited<ReturnType<typeof addAddress>>, TError, { data: AddressCreateRequest }, TContext> => {
+  const mutationKey = ['addAddress'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof addAddress>>, { data: AddressCreateRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return addAddress(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddAddressMutationResult = NonNullable<Awaited<ReturnType<typeof addAddress>>>;
+export type AddAddressMutationBody = AddressCreateRequest;
+export type AddAddressMutationError = unknown;
+
+/**
+ * @summary 배송지 추가
+ */
+export const useAddAddress = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof addAddress>>,
+      TError,
+      { data: AddressCreateRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof addAddress>>, TError, { data: AddressCreateRequest }, TContext> => {
+  const mutationOptions = getAddAddressMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
  * 새로운 상점을 생성합니다, 상점은 하나의 SellerProfile 당 1개 생성 가능합니다.
  * @summary 상점 생성
  */
@@ -1718,7 +4250,7 @@ export const useDecideOrderDelivery = <TError = unknown, TContext = unknown>(
  * 배달 가능 지역을 설정합니다 (현재는 1군데만, 자유로운 형식으로 가능).
  * @summary 배달 가능 지역 설정
  */
-export const updateDeliveryArea = (deliveryAreaRequestDto: DeliveryAreaRequestDto, signal?: AbortSignal) => {
+export const updateDeliveryArea1 = (deliveryAreaRequestDto: DeliveryAreaRequestDto, signal?: AbortSignal) => {
   return customInstance<ApiResponseVoid>({
     url: `/api/v1/deliveries/area`,
     method: 'POST',
@@ -1728,20 +4260,20 @@ export const updateDeliveryArea = (deliveryAreaRequestDto: DeliveryAreaRequestDt
   });
 };
 
-export const getUpdateDeliveryAreaMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+export const getUpdateDeliveryArea1MutationOptions = <TError = unknown, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateDeliveryArea>>,
+    Awaited<ReturnType<typeof updateDeliveryArea1>>,
     TError,
     { data: DeliveryAreaRequestDto },
     TContext
   >;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof updateDeliveryArea>>,
+  Awaited<ReturnType<typeof updateDeliveryArea1>>,
   TError,
   { data: DeliveryAreaRequestDto },
   TContext
 > => {
-  const mutationKey = ['updateDeliveryArea'];
+  const mutationKey = ['updateDeliveryArea1'];
   const { mutation: mutationOptions } = options
     ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
       ? options
@@ -1749,28 +4281,28 @@ export const getUpdateDeliveryAreaMutationOptions = <TError = unknown, TContext 
     : { mutation: { mutationKey } };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateDeliveryArea>>,
+    Awaited<ReturnType<typeof updateDeliveryArea1>>,
     { data: DeliveryAreaRequestDto }
   > = (props) => {
     const { data } = props ?? {};
 
-    return updateDeliveryArea(data);
+    return updateDeliveryArea1(data);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type UpdateDeliveryAreaMutationResult = NonNullable<Awaited<ReturnType<typeof updateDeliveryArea>>>;
-export type UpdateDeliveryAreaMutationBody = DeliveryAreaRequestDto;
-export type UpdateDeliveryAreaMutationError = unknown;
+export type UpdateDeliveryArea1MutationResult = NonNullable<Awaited<ReturnType<typeof updateDeliveryArea1>>>;
+export type UpdateDeliveryArea1MutationBody = DeliveryAreaRequestDto;
+export type UpdateDeliveryArea1MutationError = unknown;
 
 /**
  * @summary 배달 가능 지역 설정
  */
-export const useUpdateDeliveryArea = <TError = unknown, TContext = unknown>(
+export const useUpdateDeliveryArea1 = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateDeliveryArea>>,
+      Awaited<ReturnType<typeof updateDeliveryArea1>>,
       TError,
       { data: DeliveryAreaRequestDto },
       TContext
@@ -1778,12 +4310,12 @@ export const useUpdateDeliveryArea = <TError = unknown, TContext = unknown>(
   },
   queryClient?: QueryClient
 ): UseMutationResult<
-  Awaited<ReturnType<typeof updateDeliveryArea>>,
+  Awaited<ReturnType<typeof updateDeliveryArea1>>,
   TError,
   { data: DeliveryAreaRequestDto },
   TContext
 > => {
-  const mutationOptions = getUpdateDeliveryAreaMutationOptions(options);
+  const mutationOptions = getUpdateDeliveryArea1MutationOptions(options);
 
   return useMutation(mutationOptions, queryClient);
 };
@@ -2145,6 +4677,10 @@ export const usePay = <TError = unknown, TContext = unknown>(
   return useMutation(mutationOptions, queryClient);
 };
 
+/**
+ * 이메일과 비밀번호로 신규 회원가입을 진행합니다. 비밀번호는 8자 이상, 영문/숫자/특수문자 포함이어야 합니다.
+ * @summary 회원가입
+ */
 export const signup = (signupRequest: SignupRequest, signal?: AbortSignal) => {
   return customInstance<ApiResponseSignupResponse>({
     url: `/api/v1/auth/signup`,
@@ -2178,6 +4714,9 @@ export type SignupMutationResult = NonNullable<Awaited<ReturnType<typeof signup>
 export type SignupMutationBody = SignupRequest;
 export type SignupMutationError = unknown;
 
+/**
+ * @summary 회원가입
+ */
 export const useSignup = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<Awaited<ReturnType<typeof signup>>, TError, { data: SignupRequest }, TContext>;
@@ -2185,6 +4724,69 @@ export const useSignup = <TError = unknown, TContext = unknown>(
   queryClient?: QueryClient
 ): UseMutationResult<Awaited<ReturnType<typeof signup>>, TError, { data: SignupRequest }, TContext> => {
   const mutationOptions = getSignupMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * Refresh Token을 사용하여 새로운 Access Token을 발급받습니다.
+ * @summary 토큰 재발급
+ */
+export const refreshToken = (refreshTokenRequest: RefreshTokenRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({
+    url: `/api/v1/auth/refresh`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: refreshTokenRequest,
+    signal,
+  });
+};
+
+export const getRefreshTokenMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof refreshToken>>,
+    TError,
+    { data: RefreshTokenRequest },
+    TContext
+  >;
+}): UseMutationOptions<Awaited<ReturnType<typeof refreshToken>>, TError, { data: RefreshTokenRequest }, TContext> => {
+  const mutationKey = ['refreshToken'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshToken>>, { data: RefreshTokenRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return refreshToken(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RefreshTokenMutationResult = NonNullable<Awaited<ReturnType<typeof refreshToken>>>;
+export type RefreshTokenMutationBody = RefreshTokenRequest;
+export type RefreshTokenMutationError = unknown;
+
+/**
+ * @summary 토큰 재발급
+ */
+export const useRefreshToken = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof refreshToken>>,
+      TError,
+      { data: RefreshTokenRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof refreshToken>>, TError, { data: RefreshTokenRequest }, TContext> => {
+  const mutationOptions = getRefreshTokenMutationOptions(options);
 
   return useMutation(mutationOptions, queryClient);
 };
@@ -2223,6 +4825,44 @@ export const useLogout = <TError = unknown, TContext = unknown>(
   return useMutation(mutationOptions, queryClient);
 };
 
+export const logoutAll = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({ url: `/api/v1/auth/logout/all`, method: 'POST', signal });
+};
+
+export const getLogoutAllMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof logoutAll>>, TError, void, TContext>;
+}): UseMutationOptions<Awaited<ReturnType<typeof logoutAll>>, TError, void, TContext> => {
+  const mutationKey = ['logoutAll'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof logoutAll>>, void> = () => {
+    return logoutAll();
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LogoutAllMutationResult = NonNullable<Awaited<ReturnType<typeof logoutAll>>>;
+
+export type LogoutAllMutationError = unknown;
+
+export const useLogoutAll = <TError = unknown, TContext = unknown>(
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof logoutAll>>, TError, void, TContext> },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof logoutAll>>, TError, void, TContext> => {
+  const mutationOptions = getLogoutAllMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 이메일과 비밀번호로 로그인합니다. Access Token과 Refresh Token이 발급되며, 판매자 프로필인 경우 storeId와 함께 프로필 상세 정보도 반환됩니다.
+ * @summary 로그인
+ */
 export const login = (loginRequest: LoginRequest, signal?: AbortSignal) => {
   return customInstance<ApiResponseLoginResponse>({
     url: `/api/v1/auth/login`,
@@ -2256,6 +4896,9 @@ export type LoginMutationResult = NonNullable<Awaited<ReturnType<typeof login>>>
 export type LoginMutationBody = LoginRequest;
 export type LoginMutationError = unknown;
 
+/**
+ * @summary 로그인
+ */
 export const useLogin = <TError = unknown, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, { data: LoginRequest }, TContext>;
@@ -2828,11 +5471,367 @@ export const useUpdateRiderStatus = <TError = unknown, TContext = unknown>(
 };
 
 /**
- * sort, cursor, size 를 받아 특정 상점의 리뷰 리스트를 조회합니다.
- * @summary 특정 상점 리뷰 리스트 조회
+ * 현재 배달 가능한 상태인지 확인합니다. (프로필 활성화 + 배달 상태 ON)
+ * @summary 배달 가능 여부 조회
+ */
+export const checkAvailability = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseBoolean>({ url: `/api/v1/users/me/rider/available`, method: 'GET', signal });
+};
+
+export const getCheckAvailabilityInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me/rider/available`] as const;
+};
+
+export const getCheckAvailabilityQueryKey = () => {
+  return [`/api/v1/users/me/rider/available`] as const;
+};
+
+export const getCheckAvailabilityInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof checkAvailability>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCheckAvailabilityInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof checkAvailability>>> = ({ signal }) =>
+    checkAvailability(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof checkAvailability>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CheckAvailabilityInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof checkAvailability>>>;
+export type CheckAvailabilityInfiniteQueryError = unknown;
+
+export function useCheckAvailabilityInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof checkAvailability>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof checkAvailability>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCheckAvailabilityInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof checkAvailability>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof checkAvailability>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCheckAvailabilityInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof checkAvailability>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 배달 가능 여부 조회
+ */
+
+export function useCheckAvailabilityInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof checkAvailability>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCheckAvailabilityInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getCheckAvailabilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkAvailability>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCheckAvailabilityQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof checkAvailability>>> = ({ signal }) =>
+    checkAvailability(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof checkAvailability>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CheckAvailabilityQueryResult = NonNullable<Awaited<ReturnType<typeof checkAvailability>>>;
+export type CheckAvailabilityQueryError = unknown;
+
+export function useCheckAvailability<TData = Awaited<ReturnType<typeof checkAvailability>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof checkAvailability>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCheckAvailability<TData = Awaited<ReturnType<typeof checkAvailability>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkAvailability>>,
+          TError,
+          Awaited<ReturnType<typeof checkAvailability>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCheckAvailability<TData = Awaited<ReturnType<typeof checkAvailability>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 배달 가능 여부 조회
+ */
+
+export function useCheckAvailability<TData = Awaited<ReturnType<typeof checkAvailability>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof checkAvailability>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCheckAvailabilityQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 현재 설정된 기본 배송지를 조회합니다.
+ * @summary 기본 배송지 조회
+ */
+export const getDefaultAddress = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseAddressResponse>({
+    url: `/api/v1/users/me/customer/addresses/default`,
+    method: 'GET',
+    signal,
+  });
+};
+
+export const getGetDefaultAddressInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/users/me/customer/addresses/default`] as const;
+};
+
+export const getGetDefaultAddressQueryKey = () => {
+  return [`/api/v1/users/me/customer/addresses/default`] as const;
+};
+
+export const getGetDefaultAddressInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getDefaultAddress>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDefaultAddressInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDefaultAddress>>> = ({ signal }) =>
+    getDefaultAddress(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getDefaultAddress>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDefaultAddressInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getDefaultAddress>>>;
+export type GetDefaultAddressInfiniteQueryError = unknown;
+
+export function useGetDefaultAddressInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getDefaultAddress>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDefaultAddress>>,
+          TError,
+          Awaited<ReturnType<typeof getDefaultAddress>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDefaultAddressInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getDefaultAddress>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDefaultAddress>>,
+          TError,
+          Awaited<ReturnType<typeof getDefaultAddress>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDefaultAddressInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getDefaultAddress>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 기본 배송지 조회
+ */
+
+export function useGetDefaultAddressInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getDefaultAddress>>>,
+  TError = unknown,
+>(
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDefaultAddressInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetDefaultAddressQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDefaultAddress>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDefaultAddressQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDefaultAddress>>> = ({ signal }) =>
+    getDefaultAddress(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDefaultAddress>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetDefaultAddressQueryResult = NonNullable<Awaited<ReturnType<typeof getDefaultAddress>>>;
+export type GetDefaultAddressQueryError = unknown;
+
+export function useGetDefaultAddress<TData = Awaited<ReturnType<typeof getDefaultAddress>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDefaultAddress>>,
+          TError,
+          Awaited<ReturnType<typeof getDefaultAddress>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDefaultAddress<TData = Awaited<ReturnType<typeof getDefaultAddress>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDefaultAddress>>,
+          TError,
+          Awaited<ReturnType<typeof getDefaultAddress>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetDefaultAddress<TData = Awaited<ReturnType<typeof getDefaultAddress>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 기본 배송지 조회
+ */
+
+export function useGetDefaultAddress<TData = Awaited<ReturnType<typeof getDefaultAddress>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getDefaultAddress>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetDefaultAddressQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * sort, cursor, size 를 받아 특정 상점의 리뷰 리스트 및 평균 평점을 조회합니다.
+ * @summary 특정 상점 리뷰 리스트 & 평점 조회
  */
 export const getStoreReviews = (storeId: number, params: GetStoreReviewsParams, signal?: AbortSignal) => {
-  return customInstance<ApiResponseCursorPageResponseReviewResponse>({
+  return customInstance<ApiResponseReviewRatingAndListResponseDto>({
     url: `/api/v1/stores/${storeId}/reviews`,
     method: 'GET',
     params,
@@ -2921,7 +5920,7 @@ export function useGetStoreReviewsInfinite<
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary 특정 상점 리뷰 리스트 조회
+ * @summary 특정 상점 리뷰 리스트 & 평점 조회
  */
 
 export function useGetStoreReviewsInfinite<
@@ -3005,7 +6004,7 @@ export function useGetStoreReviews<TData = Awaited<ReturnType<typeof getStoreRev
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary 특정 상점 리뷰 리스트 조회
+ * @summary 특정 상점 리뷰 리스트 & 평점 조회
  */
 
 export function useGetStoreReviews<TData = Awaited<ReturnType<typeof getStoreReviews>>, TError = unknown>(
@@ -6350,6 +9349,192 @@ export function useSubscribe<TData = Awaited<ReturnType<typeof subscribe>>, TErr
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getSubscribeQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * sort, cursor, size와 사용자의 프로필에 따라 작성한 리뷰 or 내게 달린 리뷰 리스트 및 평균 평점을 조회합니다.
+ * @summary 내 리뷰 리스트 & 평점 조회
+ */
+export const getMyReviews = (params: GetMyReviewsParams, signal?: AbortSignal) => {
+  return customInstance<ApiResponseReviewRatingAndListResponseDto>({
+    url: `/api/v1/me/reviews`,
+    method: 'GET',
+    params,
+    signal,
+  });
+};
+
+export const getGetMyReviewsInfiniteQueryKey = (params?: GetMyReviewsParams) => {
+  return ['infinate', `/api/v1/me/reviews`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMyReviewsQueryKey = (params?: GetMyReviewsParams) => {
+  return [`/api/v1/me/reviews`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMyReviewsInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyReviews>>>,
+  TError = unknown,
+>(
+  params: GetMyReviewsParams,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyReviewsInfiniteQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyReviews>>> = ({ signal }) => getMyReviews(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getMyReviews>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyReviewsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyReviews>>>;
+export type GetMyReviewsInfiniteQueryError = unknown;
+
+export function useGetMyReviewsInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyReviews>>>,
+  TError = unknown,
+>(
+  params: GetMyReviewsParams,
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyReviews>>,
+          TError,
+          Awaited<ReturnType<typeof getMyReviews>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyReviewsInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyReviews>>>,
+  TError = unknown,
+>(
+  params: GetMyReviewsParams,
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyReviews>>,
+          TError,
+          Awaited<ReturnType<typeof getMyReviews>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyReviewsInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyReviews>>>,
+  TError = unknown,
+>(
+  params: GetMyReviewsParams,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 리뷰 리스트 & 평점 조회
+ */
+
+export function useGetMyReviewsInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getMyReviews>>>,
+  TError = unknown,
+>(
+  params: GetMyReviewsParams,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyReviewsInfiniteQueryOptions(params, options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetMyReviewsQueryOptions = <TData = Awaited<ReturnType<typeof getMyReviews>>, TError = unknown>(
+  params: GetMyReviewsParams,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyReviewsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyReviews>>> = ({ signal }) => getMyReviews(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyReviews>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetMyReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyReviews>>>;
+export type GetMyReviewsQueryError = unknown;
+
+export function useGetMyReviews<TData = Awaited<ReturnType<typeof getMyReviews>>, TError = unknown>(
+  params: GetMyReviewsParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyReviews>>,
+          TError,
+          Awaited<ReturnType<typeof getMyReviews>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyReviews<TData = Awaited<ReturnType<typeof getMyReviews>>, TError = unknown>(
+  params: GetMyReviewsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyReviews>>,
+          TError,
+          Awaited<ReturnType<typeof getMyReviews>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetMyReviews<TData = Awaited<ReturnType<typeof getMyReviews>>, TError = unknown>(
+  params: GetMyReviewsParams,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 내 리뷰 리스트 & 평점 조회
+ */
+
+export function useGetMyReviews<TData = Awaited<ReturnType<typeof getMyReviews>>, TError = unknown>(
+  params: GetMyReviewsParams,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReviews>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetMyReviewsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { MapPin, Truck } from 'lucide-react';
 import { SellerHeader } from './_components/SellerHeader';
 import { Switch } from '@/components/ui/switch';
@@ -17,11 +17,14 @@ import {
   useGetAcceptedOrdersInfinite,
   useGetPendingOrdersInfinite,
   useToggleStoreStatus,
+  useGetOrdersHistoryInfinite,
+  useGetMyProfile,
 } from '@/api/generated';
 import type { OrderResponseStatus } from '@/api/generated/model/orderResponseStatus';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStoreDetailsStore } from '@/store/storeDetails';
+import { useAuthStore } from '@/store/auth';
 
 export const Route = createFileRoute('/(dashboard)/seller/')({
   component: RouteComponent,
@@ -43,17 +46,31 @@ const SELLER_PROFILE = {
 };
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const [orderTab, setOrderTab] = React.useState<OrderTabKey>('accept');
   const [isOpen, setIsOpen] = React.useState(true);
-  // const storeId = useAuthStore((s) => s.currentActiveProfileId);
+  const storeId = useAuthStore((s) => s.storeId);
   const toggleStoreStatusMutation = useToggleStoreStatus();
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
-  // 임시 하드코딩: 개발/테스트 목적. 추후 URL or auth 기반으로 교체
-  const effectiveStoreId = 1;
-  const storeQuery = useGetStore(effectiveStoreId, {
+  // 로그인 시 보유한 상점이 있으면 해당 ID 사용
+  const effectiveStoreId = Number.isFinite(storeId as any) ? (storeId as number) : undefined;
+  const storeQuery = useGetStore(effectiveStoreId ?? 0, {
     query: { enabled: !!effectiveStoreId, staleTime: 10_000, refetchOnWindowFocus: false },
   });
+
+  // 내 판매자 프로필 조회 (헤더 바인딩용)
+  const sellerProfileQuery = useGetMyProfile({
+    query: { staleTime: 10_000, refetchOnWindowFocus: false },
+  } as any);
+  const sellerProfile = ((sellerProfileQuery.data as any)?.data?.content ?? undefined) as
+    | { nickname?: string; profileImageUrl?: string; user?: { username?: string } }
+    | undefined;
+  React.useEffect(() => {
+    if (sellerProfileQuery.isError) {
+      toast.error('판매자 프로필을 불러오지 못했어요.');
+    }
+  }, [sellerProfileQuery.isError]);
 
   const setSelectedStore = useStoreDetailsStore((s) => s.setSelectedStore);
   React.useEffect(() => {
@@ -136,6 +153,19 @@ function RouteComponent() {
     }
   }, [acceptedQuery.isSuccess]);
 
+  // 주문 내역(히스토리) 무한 스크롤
+  const historyQuery = useGetOrdersHistoryInfinite(
+    (effectiveStoreId ?? 0) as number,
+    { size: 10 } as any,
+    {
+      query: {
+        enabled: !!effectiveStoreId,
+        getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
+        refetchOnWindowFocus: false,
+      },
+    } as any
+  );
+
   const formatAmount = React.useCallback((amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount);
   }, []);
@@ -143,86 +173,113 @@ function RouteComponent() {
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc] shadow-[0_32px_80px_-40px_rgba(26,86,75,0.55)]'>
       <SellerHeader
-        nickname={SELLER_PROFILE.nickname}
+        nickname={sellerProfile?.nickname ?? sellerProfile?.user?.username ?? SELLER_PROFILE.nickname}
         storeName={(storeQuery.data as any)?.data?.content?.name ?? SELLER_PROFILE.storeName}
         address={(storeQuery.data as any)?.data?.content?.roadAddr ?? SELLER_PROFILE.address}
         description={(storeQuery.data as any)?.data?.content?.description ?? ''}
-        profileImageUrl={(storeQuery.data as any)?.data?.content?.imageUrl ?? SELLER_PROFILE.profileImageUrl}
+        profileImageUrl={
+          sellerProfile?.profileImageUrl ??
+          (storeQuery.data as any)?.data?.content?.imageUrl ??
+          SELLER_PROFILE.profileImageUrl
+        }
         onSettingsClick={() => console.log('seller settings open')}
       />
 
       <main
         ref={scrollRef}
-        className='flex-1 space-y-5 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-28 pt-6 outline-[#2ac1bc]/15 ring-1 ring-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-32 sm:pt-7'>
-        <Card className='border-none bg-white shadow-sm'>
-          <CardContent className='flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between'>
-            <div className='inline-flex flex-1 items-center justify-between rounded-full bg-[#e9f6f5] p-1 text-[13px] font-semibold text-[#1b1b1b] sm:flex-none sm:text-sm'>
-              <div className='flex items-center gap-1'>
-                {ORDER_TABS.map(({ key, label }) => {
-                  const isActive = key === orderTab;
-                  return (
-                    <button
-                      key={key}
-                      type='button'
-                      onClick={() => setOrderTab(key)}
-                      className={
-                        isActive
-                          ? 'rounded-full bg-white px-4 py-2 text-[#1b1b1b] shadow-sm'
-                          : 'rounded-full px-4 py-2 text-[#6b7785] hover:text-[#1b1b1b]'
-                      }>
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className='flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-[#1b1b1b] shadow-sm sm:text-sm'>
-                <Switch
-                  checked={isOpen}
-                  onCheckedChange={(next) => {
-                    const prev = isOpen;
-                    setIsOpen(next);
-                    if (!effectiveStoreId) {
-                      setIsOpen(prev);
-                      toast.error('상점 정보를 확인할 수 없어요. 다시 로그인해 주세요.');
-                      return;
-                    }
-                    toggleStoreStatusMutation.mutate(
-                      { storeId: effectiveStoreId },
-                      {
-                        onSuccess: () => {
-                          toast.success(next ? '영업 상태로 전환됐어요.' : '휴업 상태로 전환됐어요.');
-                        },
-                        onError: () => {
-                          setIsOpen(prev);
-                          toast.error('상태 변경에 실패했어요. 잠시 후 다시 시도해 주세요.');
-                        },
-                      }
-                    );
-                  }}
-                  disabled={toggleStoreStatusMutation.isPending}
-                  aria-busy={toggleStoreStatusMutation.isPending}
-                  className='data-[state=checked]:bg-[#1ba7a1] data-[state=unchecked]:bg-[#cbd8e2]'
-                />
-                <span className='flex flex-col leading-tight'>
-                  <span>{isOpen ? '영업중' : '휴업중'}</span>
-                  <span className='text-[11px] font-medium text-[#6b7785]'>
-                    {isOpen ? '주문 접수 가능' : '주문 중지'}
-                  </span>
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {orderTab === 'accept' ? (
-          <PendingOrdersSection
-            query={pendingQuery}
-            scrollRef={scrollRef}
-            formatAmount={formatAmount}
-            storeId={effectiveStoreId}
-          />
+        className='flex-1 space-y-5 overflow-y-auto rounded-t_[1.5rem] bg-[#f8f9fa] px-4 pb-28 pt-6 outline-[#2ac1bc]/15 ring-1 ring-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-32 sm:pt-7'>
+        {!effectiveStoreId ? (
+          <section className='space-y-3'>
+            <Card className='border-none bg-white shadow-sm'>
+              <CardContent className='space-y-3 px-4 py-6 text-center'>
+                <p className='text-[13px] text-[#6b7785]'>등록된 상점이 없습니다.</p>
+                <Button
+                  className='h-9 rounded-full bg-[#2ac1bc] px-4 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'
+                  onClick={() => navigate({ to: '/seller/create-store' })}>
+                  상점 만들기
+                </Button>
+              </CardContent>
+            </Card>
+          </section>
         ) : (
-          <AcceptedOrdersSection query={acceptedQuery} scrollRef={scrollRef} />
+          <>
+            <Card className='border-none bg-white shadow-sm'>
+              <CardContent className='flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between'>
+                <div className='inline-flex flex-1 items-center justify-between rounded-full bg-[#e9f6f5] p-1 text-[13px] font-semibold text-[#1b1b1b] sm:flex-none sm:text-sm'>
+                  <div className='flex items-center gap-1'>
+                    {ORDER_TABS.map(({ key, label }) => {
+                      const isActive = key === orderTab;
+                      return (
+                        <button
+                          key={key}
+                          type='button'
+                          onClick={() => setOrderTab(key)}
+                          className={
+                            isActive
+                              ? 'rounded-full bg-white px-4 py-2 text-[#1b1b1b] shadow-sm'
+                              : 'rounded-full px-4 py-2 text-[#6b7785] hover:text-[#1b1b1b]'
+                          }>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className='flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[12px] font-semibold text-[#1b1b1b] shadow-sm sm:text-sm'>
+                    <Switch
+                      checked={isOpen}
+                      onCheckedChange={(next) => {
+                        const prev = isOpen;
+                        setIsOpen(next);
+                        if (!effectiveStoreId) {
+                          setIsOpen(prev);
+                          toast.error('상점 정보를 확인할 수 없어요. 다시 로그인해 주세요.');
+                          return;
+                        }
+                        toggleStoreStatusMutation.mutate(
+                          { storeId: effectiveStoreId },
+                          {
+                            onSuccess: () => {
+                              toast.success(next ? '영업 상태로 전환됐어요.' : '휴업 상태로 전환됐어요.');
+                            },
+                            onError: () => {
+                              setIsOpen(prev);
+                              toast.error('상태 변경에 실패했어요. 잠시 후 다시 시도해 주세요.');
+                            },
+                          }
+                        );
+                      }}
+                      disabled={toggleStoreStatusMutation.isPending}
+                      aria-busy={toggleStoreStatusMutation.isPending}
+                      className='data-[state=checked]:bg-[#1ba7a1] data-[state=unchecked]:bg-[#cbd8e2]'
+                    />
+                    <span className='flex flex-col leading-tight'>
+                      <span>{isOpen ? '영업중' : '휴업중'}</span>
+                      <span className='text-[11px] font-medium text-[#6b7785]'>
+                        {isOpen ? '주문 접수 가능' : '주문 중지'}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {orderTab === 'accept' ? (
+              <PendingOrdersSection
+                query={pendingQuery}
+                scrollRef={scrollRef}
+                formatAmount={formatAmount}
+                storeId={effectiveStoreId}
+              />
+            ) : (
+              <>
+                <AcceptedOrdersSection query={acceptedQuery} scrollRef={scrollRef} />
+                <section className='space-y-3'>
+                  <header className='px-1 pt-2 text-[13px] font-semibold text-[#1b1b1b]'>주문 내역</header>
+                  <SellerHistorySection query={historyQuery} />
+                </section>
+              </>
+            )}
+          </>
         )}
       </main>
 
@@ -381,6 +438,84 @@ function AcceptedStatusBadge({ status }: { status: OrderResponseStatus }) {
   );
 }
 
+function SellerHistorySection({ query }: { query: ReturnType<typeof useGetOrdersHistoryInfinite<any>> }) {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error } = query as any;
+  const items = React.useMemo(() => {
+    const pages = ((data as any)?.pages ?? []) as any[];
+    return pages.flatMap((p) => (p?.data?.content?.content ?? []) as any[]);
+  }, [data]);
+
+  if (!data && isLoading) {
+    return (
+      <Card className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+        <CardContent className='space-y-3 px-4 py-4'>
+          <div className='h-4 w-28 animate-pulse rounded bg-slate-200' />
+          <div className='h-4 w-60 animate-pulse rounded bg-slate-200' />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+        <CardContent className='px-4 py-4 text-[12px] text-[#ef4444]'>주문 내역을 불러오지 못했어요.</CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className='space-y-3'>
+      {items.length === 0 ? (
+        <Card className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+          <CardContent className='px-4 py-6 text-center text-[13px] text-[#6b7785]'>
+            주문 내역이 비어 있어요.
+          </CardContent>
+        </Card>
+      ) : (
+        items.map((o: any) => {
+          const first = o?.orderItems?.[0]?.product?.name ?? '주문 상품';
+          const count = Math.max(0, (o?.orderItems?.length ?? 0) - 1);
+          const title = count > 0 ? `${first} 외 ${count}건` : first;
+          const amount = Number(o?.totalPrice ?? 0);
+          const createdAt = o?.createdAt as string | undefined;
+          const d = createdAt ? new Date(createdAt) : undefined;
+          const two = (n: number) => String(n).padStart(2, '0');
+          const dateText = d
+            ? `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`
+            : '';
+          return (
+            <Card key={o?.id} className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+              <CardContent className='flex items-center justify_between gap-3 px-4 py-3'>
+                <div className='flex-1'>
+                  <p className='text-[14px] font-semibold text-[#1b1b1b]'>{title}</p>
+                  <p className='text-[12px] text-[#6b7785]'>{dateText}</p>
+                </div>
+                <div className='text-right'>
+                  <p className='text-[12px] font-semibold text-[#1b1b1b]'>
+                    ₩ {new Intl.NumberFormat('ko-KR').format(amount)}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })
+      )}
+      {hasNextPage ? (
+        <div className='flex justify-center pt-1'>
+          <Button
+            variant='outline'
+            size='sm'
+            className='rounded-full'
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}>
+            {isFetchingNextPage ? '불러오는 중…' : '더 보기'}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 function PendingOrdersSection({
   query,
   scrollRef,

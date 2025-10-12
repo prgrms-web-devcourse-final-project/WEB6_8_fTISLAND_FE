@@ -9,5 +9,5 @@
 export interface OrderItemRequest {
   productId: number;
   price: number;
-  quantity?: number;
+  quantity: number;
 }

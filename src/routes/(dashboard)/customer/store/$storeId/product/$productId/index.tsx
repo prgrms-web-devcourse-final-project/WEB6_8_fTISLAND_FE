@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, Minus, Plus, Search } from 'lucide-react';
+import { useGetProduct } from '@/api/generated';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export const Route = createFileRoute('/(dashboard)/customer/store/$storeId/product/$productId/')({
@@ -14,13 +15,27 @@ function RouteComponent() {
   const { storeId, productId } = Route.useParams();
   const [qty, setQty] = React.useState(1);
   const [open, setOpen] = React.useState(false);
-  const unitPrice = 9900;
+  const numericStoreId = Number(storeId);
+  const numericProductId = Number(productId);
+  const productQuery = useGetProduct(numericStoreId, numericProductId, {
+    query: { enabled: Number.isFinite(numericStoreId) && Number.isFinite(numericProductId), staleTime: 10_000 },
+  } as any);
+  const product = (productQuery.data as any)?.data?.content ?? undefined;
+  const unitPrice = Number(product?.price ?? 0);
   const totalPrice = unitPrice * qty;
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
       <header className='relative h-[230px] w-full overflow-hidden'>
-        <div className='absolute inset-0 bg-[url(https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=2070&auto=format&fit=crop)] bg-cover bg-center opacity-80' />
+        {product?.imageUrl ? (
+          <img
+            src={product.imageUrl}
+            alt={product?.name ?? '상품 이미지'}
+            className='absolute inset-0 h-full w-full object-cover opacity-80'
+          />
+        ) : (
+          <div className='absolute inset-0 bg-[url(https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=2070&auto=format&fit=crop)] bg-cover bg-center opacity-80' />
+        )}
         <div className='absolute inset-0 bg-black/30' />
         <div className='relative z-10 flex items-center justify-between px-4 pt-6 text-white sm:px-6 sm:pt-7'>
           <Button
@@ -44,9 +59,9 @@ function RouteComponent() {
       <main className='flex-1 space-y-4 rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-24 pt-4 outline-[1.5px] outline-[#2ac1bc]/15 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-28 sm:pt-5'>
         <section className='rounded-2xl bg-white px-4 py-4 shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] sm:px-5'>
           <div className='space-y-1'>
-            <h1 className='text-[18px] font-extrabold text-[#1b1b1b]'>상품 {productId}</h1>
-            <p className='text-[12px] text-[#6b7785]'>신선하고 맛있는 상품입니다.</p>
-            <p className='text-[14px] font-bold text-[#1b1b1b]'>₩ 9,900</p>
+            <h1 className='text-[18px] font-extrabold text-[#1b1b1b]'>{product?.name ?? `상품 ${productId}`}</h1>
+            <p className='text-[12px] text-[#6b7785]'>{product?.description ?? '신선하고 맛있는 상품입니다.'}</p>
+            <p className='text-[14px] font-bold text-[#1b1b1b]'>₩ {new Intl.NumberFormat('ko-KR').format(unitPrice)}</p>
           </div>
 
           <div className='mt-3 flex items-center gap-2'>

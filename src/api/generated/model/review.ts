@@ -18,7 +18,7 @@ export interface Review {
   comment?: string;
   /** 대상 타입(상점 or 배달원) */
   targetType?: ReviewTargetType;
-  /** 대상 ID (상점 or 배달원) */
+  /** 대상 ID (판매자 or 배달원) */
   targetId?: number;
   customerProfile?: CustomerProfile;
   /** 리뷰 사진 */

@@ -13,11 +13,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trash2 } from 'lucide-react';
-import { useCreateProduct, useUpdateProduct } from '@/api/generated';
+import { usePresignedUpload } from '@/lib/usePresignedUpload';
+import { GeneratePresignedUrlRequestDomain } from '@/api/generated/model/generatePresignedUrlRequestDomain';
+import { useCreateProduct, useUpdateProduct, getSearchProductsInfiniteQueryKey } from '@/api/generated';
 import type { ProductCreateRequest } from '@/api/generated/model/productCreateRequest';
 import type { ProductUpdateRequest } from '@/api/generated/model/productUpdateRequest';
 import { toast } from 'sonner';
 import { useStoreDetailsStore } from '@/store/storeDetails';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDeleteProduct } from '@/api/generated';
 import { useForm } from 'react-hook-form';
 
@@ -125,9 +128,6 @@ function ProductRow({
             <span className='rounded-full bg-[#daf7f4] px-2.5 py-0.5 font-semibold text-[#1f6e6b]'>
               ₩ {product.price.toLocaleString()}
             </span>
-            <span className='rounded-full bg-[#fef3c7] px-2.5 py-0.5 font-semibold text-[#b45309]'>
-              재고 {product.quantity}개
-            </span>
           </div>
         </div>
         <div className='flex items-center gap-2'>
@@ -160,7 +160,10 @@ function DeleteProductButton({ productId, onDeleted }: { productId: string; onDe
   const [open, setOpen] = React.useState(false);
   const deleteMutation = useDeleteProduct();
   const selectedStoreId = useStoreDetailsStore((s) => s.selectedStore?.id) ?? 1;
-  const numericProductId = Number(productId);
+  const qc = useQueryClient();
+  const numericProductId = Number(
+    /^-?\d+(?:\.\d+)?$/.test(productId) ? productId : (productId as any)?.replace?.(/^PRD-/, '')
+  );
 
   return (
     <>
@@ -193,7 +196,7 @@ function DeleteProductButton({ productId, onDeleted }: { productId: string; onDe
               aria-busy={deleteMutation.isPending}
               className='h-10 rounded-full bg-[#ef4444] px-4 text-[13px] font-semibold text-white hover:bg-[#dc2626]'
               onClick={() => {
-                if (!Number.isFinite(numericProductId)) {
+                if (!Number.isFinite(numericProductId) || numericProductId <= 0) {
                   toast.error('올바르지 않은 상품 ID입니다.');
                   return;
                 }
@@ -204,6 +207,13 @@ function DeleteProductButton({ productId, onDeleted }: { productId: string; onDe
                       toast.success('상품을 삭제했어요.');
                       setOpen(false);
                       onDeleted();
+                      try {
+                        qc.invalidateQueries({
+                          queryKey: getSearchProductsInfiniteQueryKey(selectedStoreId, {
+                            request: { limit: 10 },
+                          } as any),
+                        });
+                      } catch {}
                     },
                     onError: () => {
                       toast.error('상품 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.');
@@ -226,6 +236,7 @@ function AddProductDialog({ onSave }: { onSave(product: ManagedProduct): void })
   const form = useProductForm();
   const createProductMutation = useCreateProduct();
   const selectedStoreId = useStoreDetailsStore((s) => s.selectedStore?.id) ?? 1;
+  const qc = useQueryClient();
 
   const handleSubmit = form.handleSubmit((values) => {
     const req: ProductCreateRequest = {
@@ -248,6 +259,11 @@ function AddProductDialog({ onSave }: { onSave(product: ManagedProduct): void })
             thumbnail: values.thumbnail,
           };
           onSave(newProduct);
+          try {
+            qc.invalidateQueries({
+              queryKey: getSearchProductsInfiniteQueryKey(selectedStoreId, { request: { limit: 10 } } as any),
+            });
+          } catch {}
           setOpen(false);
           form.reset();
         },
@@ -330,6 +346,7 @@ function EditProductDialog({
   const updateMutation = useUpdateProduct();
   const selectedStoreId = useStoreDetailsStore((s) => s.selectedStore?.id) ?? 1;
   const numericProductId = Number(product.id);
+  const qc = useQueryClient();
 
   const handleSubmit = form.handleSubmit((values) => {
     const req: ProductUpdateRequest = {
@@ -352,6 +369,11 @@ function EditProductDialog({
             thumbnail: values.thumbnail,
           };
           onSave(product.id, updated);
+          try {
+            qc.invalidateQueries({
+              queryKey: getSearchProductsInfiniteQueryKey(selectedStoreId, { request: { limit: 10 } } as any),
+            });
+          } catch {}
           setOpen(false);
         },
         onError: () => {
@@ -417,7 +439,11 @@ function ProductFields({ form }: { form: ReturnType<typeof useProductForm> }) {
   const {
     register,
     formState: { errors },
+    setValue,
+    watch,
   } = form;
+  const uploadMutation = usePresignedUpload();
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   return (
     <>
@@ -474,12 +500,43 @@ function ProductFields({ form }: { form: ReturnType<typeof useProductForm> }) {
         {errors.description ? <p className='text-[11px] text-[#f43f5e]'>{errors.description.message}</p> : null}
       </div>
       <div className='space-y-1'>
-        <Label className='text-[12px] font-semibold text-[#1b1b1b]'>썸네일 이미지 URL</Label>
-        <Input
-          placeholder='예) https://...'
-          className='h-10 rounded-xl border-[#cbd8e2] text-[13px]'
-          {...register('thumbnail', { required: '썸네일 URL을 입력해 주세요.' })}
-        />
+        <Label className='text-[12px] font-semibold text-[#1b1b1b]'>썸네일 이미지</Label>
+        <input type='hidden' {...register('thumbnail', { required: '썸네일 이미지를 업로드해 주세요.' })} />
+        <div className='flex items-center gap-3'>
+          <ThumbnailPreview src={watch('thumbnail')} name={watch('name') || '상품 이미지'} />
+          <div className='flex gap-2'>
+            <Button
+              type='button'
+              disabled={uploadMutation.isPending}
+              aria-busy={uploadMutation.isPending}
+              className='h-9 rounded-full bg-[#1ba7a1] px-3 text-[12px] font-semibold text-white hover:bg-[#17928d]'
+              onClick={() => fileInputRef.current?.click()}>
+              {watch('thumbnail') ? '다시 선택' : '이미지 선택'}
+            </Button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type='file'
+            accept='image/*'
+            className='hidden'
+            onChange={async (e) => {
+              const file = e.currentTarget.files?.[0];
+              if (!file) return;
+              try {
+                const { objectUrl } = await uploadMutation.mutateAsync({
+                  file,
+                  domain: GeneratePresignedUrlRequestDomain.PRODUCT,
+                  contentType: (file as any).type || 'application/octet-stream',
+                });
+                setValue('thumbnail', objectUrl, { shouldDirty: true, shouldValidate: true });
+                // clear to allow selecting the same file again
+                e.currentTarget.value = '';
+              } catch {
+                // handled by hook toast
+              }
+            }}
+          />
+        </div>
         {errors.thumbnail ? <p className='text-[11px] text-[#f43f5e]'>{errors.thumbnail.message}</p> : null}
       </div>
     </>

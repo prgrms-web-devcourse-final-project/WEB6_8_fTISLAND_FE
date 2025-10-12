@@ -7,6 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useForm, Controller } from 'react-hook-form';
 import { Clock, Navigation, Timer, CheckCircle2, Wallet } from 'lucide-react';
+import {
+  useUpdateDeliveryStatus,
+  useGetDeliveryArea,
+  useGetInProgressDeliveryInfinite,
+  useGetTodayDeliveries,
+} from '@/api/generated';
+import { toast } from 'sonner';
+import { useGetMyProfile1 } from '@/api/generated';
 
 export const Route = createFileRoute('/(dashboard)/rider/')({
   component: RouteComponent,
@@ -38,8 +46,26 @@ function formatTime(date: Date) {
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const { control, watch } = useForm<RiderStatusForm>({ defaultValues: { isOnline: true } });
+  const { control, watch, setValue } = useForm<RiderStatusForm>({ defaultValues: { isOnline: true } });
   const isOnline = watch('isOnline');
+  const updateStatus = useUpdateDeliveryStatus();
+  const areaQuery = useGetDeliveryArea({ query: { staleTime: 10_000, refetchOnWindowFocus: false } } as any);
+  const riderArea = ((areaQuery.data as any)?.data?.content ?? '') as string;
+
+  // 내 배달원 프로필 조회
+  const riderProfileQuery = useGetMyProfile1({
+    query: { staleTime: 10_000, refetchOnWindowFocus: false },
+  } as any);
+  const riderProfile = ((riderProfileQuery.data as any)?.data?.content ?? undefined) as
+    | { nickname?: string; vehicleType?: string; profileImageUrl?: string }
+    | undefined;
+
+  // 프로필의 toggleStatus(ON/OFF)에 따라 토글 초기값 동기화
+  React.useEffect(() => {
+    const status = (riderProfile as any)?.toggleStatus as string | undefined;
+    if (status === 'ON') setValue('isOnline', true, { shouldDirty: false });
+    else if (status === 'OFF') setValue('isOnline', false, { shouldDirty: false });
+  }, [riderProfile, setValue]);
 
   const [now, setNow] = React.useState(() => new Date());
   React.useEffect(() => {
@@ -49,12 +75,29 @@ function RouteComponent() {
 
   const [sortBy, setSortBy] = React.useState<SortBy>('distance');
 
-  const [ongoing] = React.useState<null | {
-    orderId: string;
-    store: string;
-    address: string;
-    remainingMinutes: number;
-  }>({ orderId: 'ORD-1024', store: '골목 마트', address: '서울 성북구 동소문로25길 12 1층', remainingMinutes: 7 });
+  // 진행 중 배달 조회 (1분 폴링)
+  const inProgressQuery = useGetInProgressDeliveryInfinite<any>({
+    query: {
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (last: any) => last?.data?.content?.nextPageToken ?? undefined,
+      refetchInterval: 60_000,
+      refetchOnWindowFocus: false,
+    },
+  } as any);
+  const inProgressItems = React.useMemo(() => {
+    const pages = (inProgressQuery.data?.pages ?? []) as any[];
+    return pages.flatMap((p) => ((p as any)?.data?.content?.content ?? []) as any[]);
+  }, [inProgressQuery.data]);
+  const ongoing = React.useMemo(() => {
+    const it: any = inProgressItems?.[0];
+    if (!it) return null;
+    return {
+      orderId: String(it?.orderId ?? it?.id ?? ''),
+      store: it?.store?.name ?? it?.storeName ?? '상점',
+      address: it?.address ?? it?.destinationAddress ?? '',
+      remainingMinutes: Number(it?.etaMinutes ?? it?.remainingMinutes ?? 0),
+    } as { orderId: string; store: string; address: string; remainingMinutes: number };
+  }, [inProgressItems]);
 
   const [offers, setOffers] = React.useState<Offer[]>([
     {
@@ -98,9 +141,16 @@ function RouteComponent() {
     setOffers((prev) => prev.filter((o) => o.id !== id));
   };
 
-  const todayCompleted = 6;
-  const todayEarnings = 28400;
-  const avgMinutes = 14;
+  // 오늘의 배달 내역 요약
+  const todayQuery = useGetTodayDeliveries({
+    query: { refetchInterval: 60_000, refetchOnWindowFocus: false },
+  } as any);
+  const today = ((todayQuery.data as any)?.data?.content ?? undefined) as
+    | { todayDeliveryCount?: number; todayEarningAmount?: number; avgDeliveryTime?: number }
+    | undefined;
+  const todayCompleted = Number(today?.todayDeliveryCount ?? 0);
+  const todayEarnings = Number(today?.todayEarningAmount ?? 0);
+  const avgMinutes = Number(today?.avgDeliveryTime ?? 0);
 
   return (
     <RiderPageLayout>
@@ -109,15 +159,23 @@ function RouteComponent() {
         <Card className='border-none bg-white shadow-sm'>
           <CardHeader className='pb-3'>
             <div className='flex items-center justify-between'>
-              <CardTitle className='text-[15px] font-semibold text-[#1b1b1b]'>오늘</CardTitle>
-              <div className='text-[12px] text-[#6b7785]'>{formatTime(now)}</div>
+              <CardTitle className='text-[15px] font-semibold text-[#1b1b1b]'>
+                {riderProfile?.nickname ? `${riderProfile.nickname}님` : '오늘'}
+              </CardTitle>
+              <div className='text-[12px] text-[#6b7785]'>
+                {formatTime(now)}
+                {riderArea ? ` · ${riderArea}` : ''}
+              </div>
             </div>
           </CardHeader>
           <CardContent className='space-y-3 px-4 pb-4'>
             <div className='flex items-center justify-between rounded-2xl bg-[#f5f7f9] px-3 py-2.5'>
               <div className='flex items-center gap-2'>
                 <span className='text-[12px] font-semibold text-[#1b1b1b]'>라이더 상태</span>
-                <span className='text-[12px] text-[#6b7785]'>{isOnline ? '온라인' : '오프라인'}</span>
+                <span className='text-[12px] text-[#6b7785]'>
+                  {isOnline ? '온라인' : '오프라인'}
+                  {riderProfile?.vehicleType ? ` · ${riderProfile.vehicleType}` : ''}
+                </span>
               </div>
               <div className='flex items-center gap-2'>
                 <Label htmlFor='isOnline' className='text-[11px] text-[#6b7785]'>
@@ -127,7 +185,26 @@ function RouteComponent() {
                   control={control}
                   name='isOnline'
                   render={({ field }) => (
-                    <Switch id='isOnline' checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      id='isOnline'
+                      checked={field.value}
+                      onCheckedChange={(next) => {
+                        const prev = field.value;
+                        field.onChange(next);
+                        updateStatus.mutate({ data: { riderStatus: next ? 'ON' : 'OFF' } } as any, {
+                          onSuccess: () => {
+                            toast.success(next ? '온라인으로 전환됐어요.' : '오프라인으로 전환됐어요.');
+                            try {
+                              riderProfileQuery.refetch();
+                            } catch {}
+                          },
+                          onError: () => {
+                            field.onChange(prev);
+                            toast.error('상태 변경에 실패했어요. 다시 시도해 주세요.');
+                          },
+                        });
+                      }}
+                    />
                   )}
                 />
                 <Label htmlFor='isOnline' className='text-[11px] text-[#1b1b1b]'>
@@ -192,7 +269,7 @@ function RouteComponent() {
                 <div className='text-right'>
                   <p className='inline-flex items-center gap-1 rounded-full bg-[#2ac1bc]/10 px-2 py-0.5 text-[12px] font-semibold text-[#1f6e6b]'>
                     <Clock className='size-3 text-[#2ac1bc]' aria-hidden />
-                    {ongoing.remainingMinutes}분 남음
+                    {ongoing.remainingMinutes > 0 ? `${ongoing.remainingMinutes}분 남음` : '진행 중'}
                   </p>
                 </div>
               </div>

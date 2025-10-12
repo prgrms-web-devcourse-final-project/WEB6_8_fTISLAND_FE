@@ -15,19 +15,17 @@ export interface User {
   createdAt?: string;
   email?: string;
   password?: string;
-  name?: string;
+  username?: string;
   phoneNumber?: string;
   socialProvider?: UserSocialProvider;
   socialId?: string;
-  apiKey?: string;
   currentActiveProfile?: Profile;
   lastLoginAt?: string;
   profiles?: Profile[];
-  enabled?: boolean;
   currentActiveProfileType?: UserCurrentActiveProfileType;
-  onboardingCompleted?: boolean;
+  enabled?: boolean;
   currentActiveProfileId?: number;
-  activeProfileTypes?: UserActiveProfileTypesItem[];
   admin?: boolean;
+  activeProfileTypes?: UserActiveProfileTypesItem[];
   emailVerified?: boolean;
 }

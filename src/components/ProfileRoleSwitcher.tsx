@@ -1,4 +1,7 @@
 import { cn } from '@/lib/utils';
+import { useGetAvailableProfiles, useSwitchProfile } from '@/api/generated';
+import { useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
 
 export type ProfileRole = 'consumer' | 'seller' | 'rider';
 
@@ -15,17 +18,43 @@ const DEFAULT_ROLES: Array<{ key: ProfileRole; label: string }> = [
 ];
 
 export function ProfileRoleSwitcher({ roles = DEFAULT_ROLES, value, onChange }: ProfileRoleSwitcherProps) {
+  const navigate = useNavigate();
+  const { data } = useGetAvailableProfiles();
+  const available = (data as any)?.data?.content?.availableProfiles as string[] | undefined;
+  const switchMutation = useSwitchProfile({
+    mutation: {
+      onSuccess: (res) => {
+        const type =
+          (res as any)?.data?.content?.currentProfileType ?? (res as any)?.data?.content?.currentActiveProfileType;
+        toast.success('프로필이 전환되었습니다.');
+        if (type === 'CUSTOMER') navigate({ to: '/customer' });
+        else if (type === 'SELLER') navigate({ to: '/seller' });
+        else if (type === 'RIDER') navigate({ to: '/rider' });
+      },
+    },
+  });
+
+  const toApiType = (k: ProfileRole): 'CUSTOMER' | 'SELLER' | 'RIDER' =>
+    k === 'consumer' ? 'CUSTOMER' : (k.toUpperCase() as any);
+
   return (
     <div className='flex items-center gap-1 rounded-full bg-[#e9f6f5] p-1 text-[12px] font-semibold text-[#1b1b1b]'>
       {roles.map(({ key, label }) => {
         const isActive = value === key;
+        const apiType = toApiType(key);
+        const isEnabled = !available || available.includes(apiType);
         return (
           <button
             key={key}
             type='button'
-            onClick={() => onChange(key)}
+            disabled={!isEnabled || (isActive && !available)}
+            onClick={async () => {
+              onChange(key);
+              if (!isEnabled) return;
+              await switchMutation.mutateAsync({ data: { targetProfileType: apiType } as any });
+            }}
             className={cn(
-              'rounded-full px-3 py-1.5 transition-colors',
+              'rounded-full px-3 py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
               isActive ? 'bg-white shadow-sm text-[#1b1b1b]' : 'text-[#6b7785] hover:text-[#1b1b1b]'
             )}>
             {label}

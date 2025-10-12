@@ -8,6 +8,7 @@ export type AuthState = {
   name?: string;
   currentActiveProfileType?: ProfileType;
   currentActiveProfileId?: number;
+  storeId?: number;
   isOnboardingCompleted?: boolean;
   availableProfiles?: ProfileType[];
   accessToken?: string;
@@ -31,6 +32,7 @@ export const useAuthStore = create<AuthState>()(
         name: state.name,
         currentActiveProfileType: state.currentActiveProfileType,
         currentActiveProfileId: state.currentActiveProfileId,
+        storeId: state.storeId,
         isOnboardingCompleted: state.isOnboardingCompleted,
         availableProfiles: state.availableProfiles,
         accessToken: state.accessToken,

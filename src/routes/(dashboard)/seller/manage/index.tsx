@@ -9,18 +9,25 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Home, Package, Receipt, ShieldAlert, User } from 'lucide-react';
 import { SellerHeader } from '../_components/SellerHeader';
 import { useStoreDetailsStore } from '@/store/storeDetails';
-import { useDeleteStore, useToggleStoreStatus, useUpdateStore } from '@/api/generated';
+import { useDeleteStore, useToggleStoreStatus, useUpdateStore, useGetOrdersHistoryInfinite } from '@/api/generated';
 import type { StoreUpdateRequest } from '@/api/generated/model/storeUpdateRequest';
 import { toast } from 'sonner';
 import type { ManagedProduct } from '../_components/ProductManager';
 import { ProductManager } from '../_components/ProductManager';
 import { useSearchProductsInfinite } from '@/api/generated';
 import type { SearchProductsParams } from '@/api/generated/model/searchProductsParams';
-import type { ManagedOrder } from '../_components/OrderManager';
-import { OrderManager } from '../_components/OrderManager';
+// import { OrderManager } from '../_components/OrderManager';
 import { SettlementManager } from '../_components/SettlementManager';
 import { SETTLEMENTS as initialSettlements } from './_data/settlements';
 import { SellerFooterNav } from '../_components/SellerFooterNav';
+import { useAuthStore } from '@/store/auth';
+import KakaoAddressSearch from '@/components/address/KakaoAddressSearch';
+import { Controller, useForm } from 'react-hook-form';
+import {
+  useSellerProfileManage,
+  type BusinessInfoFormValues,
+  type AccountInfoFormValues,
+} from './_hooks/useSellerProfileManage';
 
 export const Route = createFileRoute('/(dashboard)/seller/manage/')({
   validateSearch: (search: Record<string, unknown>) => {
@@ -69,82 +76,11 @@ const INITIAL_PRODUCTS: ManagedProduct[] = [
   },
 ];
 
-const INITIAL_ORDERS: ManagedOrder[] = [
-  {
-    id: '#ORD-1029',
-    storeName: '골목 안 소담상회',
-    orderedAt: '2025-09-28T14:22:00+09:00',
-    expectedDeliveryTime: '2025-09-28T15:05:00+09:00',
-    status: 'COMPLETED',
-    address: '서울 성북구 보문로34길 12-1 (4층)',
-    items: [
-      {
-        id: 'ord-1029-item-1',
-        name: '골목 반찬 세트',
-        quantity: 2,
-        unitPrice: 8900,
-      },
-      {
-        id: 'ord-1029-item-2',
-        name: '마을 떡볶이 2인분',
-        quantity: 1,
-        unitPrice: 6500,
-      },
-    ],
-    itemNote: '유리병 포장 제품이 있어요. 취급 시 주의해주세요.',
-    customerRequest: '벨 누르지 말고 전화로 연락 주세요.',
-    deliveryFee: 3000,
-  },
-  {
-    id: '#ORD-1028',
-    storeName: '골목 안 소담상회',
-    orderedAt: '2025-09-27T11:15:00+09:00',
-    expectedDeliveryTime: '2025-09-27T12:00:00+09:00',
-    status: 'RIDER_ASSIGNED',
-    address: '서울 종로구 창신동 44-2 (창신시장 내)',
-    items: [
-      {
-        id: 'ord-1028-item-1',
-        name: '마을 떡볶이 2인분',
-        quantity: 1,
-        unitPrice: 6500,
-      },
-      {
-        id: 'ord-1028-item-2',
-        name: '수제 어묵 꼬치',
-        quantity: 3,
-        unitPrice: 1500,
-      },
-    ],
-    itemNote: '떡은 부드러운 식감으로 조리해주세요.',
-    customerRequest: '',
-    deliveryFee: 2500,
-  },
-  {
-    id: '#ORD-1027',
-    storeName: '골목 안 소담상회',
-    orderedAt: '2025-09-26T19:40:00+09:00',
-    expectedDeliveryTime: '2025-09-26T20:30:00+09:00',
-    status: 'REJECTED',
-    address: '서울 동대문구 이문로 123길 9',
-    items: [
-      {
-        id: 'ord-1027-item-1',
-        name: '수제 튀김 모둠',
-        quantity: 2,
-        unitPrice: 5000,
-      },
-    ],
-    itemNote: '튀김은 눅눅해지지 않게 포장해주세요.',
-    customerRequest: '결제 완료 후 연락 부탁드려요.',
-    deliveryFee: 2500,
-  },
-];
-
 export const SETTLEMENTS = initialSettlements;
 
 function RouteComponent() {
-  const storeId = 1; // 임시 하드코딩. 추후 URL/상태 기반으로 교체
+  const storeIdFromAuth = useAuthStore((s) => s.storeId ?? s.currentActiveProfileId);
+  const storeId = Number.isFinite(storeIdFromAuth as any) ? (storeIdFromAuth as number) : 0;
   const toggleStoreStatusMutation = useToggleStoreStatus();
   const deleteStoreMutation = useDeleteStore();
   const updateStoreMutation = useUpdateStore({
@@ -165,7 +101,7 @@ function RouteComponent() {
   const [isOpen, setIsOpen] = React.useState(STORE_INFO.status);
   const [activeTab, setActiveTab] = React.useState<TabKey>(initialTab);
   const [_, setProducts] = React.useState<ManagedProduct[]>(INITIAL_PRODUCTS);
-  const [orders] = React.useState<ManagedOrder[]>(INITIAL_ORDERS);
+  // const [orders] = React.useState<ManagedOrder[]>(INITIAL_ORDERS);
   const selectedStore = useStoreDetailsStore((s) => s.selectedStore);
 
   const handleAddProduct = React.useCallback((product: ManagedProduct) => {
@@ -245,27 +181,30 @@ function RouteComponent() {
 
       <main className='flex-1 space-y-4 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-28 pt-6 text-[#1b1b1b] outline outline-[#2ac1bc]/15 sm:space-y-5 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-32 sm:pt-7'>
         {activeTab === 'store' ? (
-          <StoreManagementCard
-            isOpen={isOpen}
-            onToggle={(next) => {
-              const prev = isOpen;
-              setIsOpen(next);
-              toggleStoreStatusMutation.mutate(
-                { storeId },
-                {
-                  onSuccess: () => {
-                    toast.success(next ? '영업 상태로 전환됐어요.' : '휴업 상태로 전환됐어요.');
-                  },
-                  onError: () => {
-                    setIsOpen(prev);
-                    toast.error('상태 변경에 실패했어요. 잠시 후 다시 시도해 주세요.');
-                  },
-                }
-              );
-            }}
-            onUpdateField={handleUpdateField}
-            onDelete={handleDeleteStore}
-          />
+          <div className='space-y-4'>
+            <StoreManagementCard
+              isOpen={isOpen}
+              onToggle={(next) => {
+                const prev = isOpen;
+                setIsOpen(next);
+                toggleStoreStatusMutation.mutate(
+                  { storeId },
+                  {
+                    onSuccess: () => {
+                      toast.success(next ? '영업 상태로 전환됐어요.' : '휴업 상태로 전환됐어요.');
+                    },
+                    onError: () => {
+                      setIsOpen(prev);
+                      toast.error('상태 변경에 실패했어요. 잠시 후 다시 시도해 주세요.');
+                    },
+                  }
+                );
+              }}
+              onUpdateField={handleUpdateField}
+              onDelete={handleDeleteStore}
+            />
+            <SellerBusinessAndAccountForms />
+          </div>
         ) : null}
 
         {activeTab === 'product' ? (
@@ -276,7 +215,7 @@ function RouteComponent() {
           />
         ) : null}
 
-        {activeTab === 'order' ? <OrderManager orders={orders} onFilterChange={() => {}} /> : null}
+        {activeTab === 'order' ? <OrderHistorySection /> : null}
 
         {activeTab === 'settlement' ? <SettlementManager summaries={SETTLEMENTS} /> : null}
 
@@ -290,6 +229,271 @@ function RouteComponent() {
     </div>
   );
 }
+
+function SellerBusinessAndAccountForms() {
+  const { profile, isLoading, isError, submitBusinessInfo, submitAccountInfo, isUpdatingBusiness, isUpdatingAccount } =
+    useSellerProfileManage();
+
+  const { control: controlBiz, handleSubmit: handleSubmitBiz } = useForm<BusinessInfoFormValues>({
+    mode: 'onChange',
+    values: {
+      businessName: profile?.businessName ?? '',
+      businessPhoneNumber: profile?.businessPhoneNumber ?? '',
+    },
+  });
+
+  const { control: controlAcc, handleSubmit: handleSubmitAcc } = useForm<AccountInfoFormValues>({
+    mode: 'onChange',
+    values: {
+      bankName: profile?.bankName ?? '',
+      accountNumber: profile?.accountNumber ?? '',
+      accountHolder: profile?.accountHolder ?? '',
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card className='border-none bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)]'>
+        <CardContent className='space-y-3 px-4 py-4'>
+          <div className='h-4 w-40 animate-pulse rounded bg-slate-200' />
+          <div className='h-4 w-64 animate-pulse rounded bg-slate-200' />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card className='border-none bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)]'>
+        <CardContent className='px-4 py-4 text-[12px] text-[#ef4444]'>판매자 프로필을 불러오지 못했어요.</CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className='space-y-4'>
+      <Card className='border-none bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)]'>
+        <CardHeader className='pb-3'>
+          <CardTitle className='text-[15px] font-semibold text-[#1b1b1b]'>사업자 정보</CardTitle>
+          <CardDescription className='text-[12px] text-[#6b7785]'>
+            사업자명과 대표 전화번호를 관리하세요.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-3'>
+          <form
+            className='space-y-3'
+            onSubmit={handleSubmitBiz((v) => {
+              submitBusinessInfo({
+                businessName: (v.businessName || '').trim() || undefined,
+                businessPhoneNumber: (v.businessPhoneNumber || '').trim() || undefined,
+              });
+            })}>
+            <div className='flex flex-col gap-1'>
+              <Label className='text-[12px] font-semibold text-[#6b7785]'>사업자명</Label>
+              <Controller
+                control={controlBiz}
+                name='businessName'
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    placeholder='예) 뭐든슈퍼'
+                    className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
+                  />
+                )}
+              />
+            </div>
+            <div className='flex flex-col gap-1'>
+              <Label className='text-[12px] font-semibold text-[#6b7785]'>사업자 전화번호</Label>
+              <Controller
+                control={controlBiz}
+                name='businessPhoneNumber'
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    placeholder='010-1234-5678'
+                    className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
+                  />
+                )}
+              />
+            </div>
+            <div className='flex justify-end pt-1'>
+              <Button type='submit' disabled={isUpdatingBusiness} className='h-9 rounded-full bg-[#1ba7a1] text-white'>
+                {isUpdatingBusiness ? '저장 중…' : '저장'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className='border-none bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)]'>
+        <CardHeader className='pb-3'>
+          <CardTitle className='text-[15px] font-semibold text-[#1b1b1b]'>정산 계좌</CardTitle>
+          <CardDescription className='text-[12px] text-[#6b7785]'>은행, 계좌번호, 예금주를 관리하세요.</CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-3'>
+          <form
+            className='space-y-3'
+            onSubmit={handleSubmitAcc((v) => {
+              submitAccountInfo({
+                bankName: (v.bankName || '').trim() || undefined,
+                accountNumber: (v.accountNumber || '').trim() || undefined,
+                accountHolder: (v.accountHolder || '').trim() || undefined,
+              });
+            })}>
+            <div className='flex flex-col gap-1'>
+              <Label className='text-[12px] font-semibold text-[#6b7785]'>은행명</Label>
+              <Controller
+                control={controlAcc}
+                name='bankName'
+                render={({ field }) => (
+                  <Input {...field} placeholder='예) KB국민' className='h-9 rounded-xl border-[#dbe4ec] text-[13px]' />
+                )}
+              />
+            </div>
+            <div className='flex flex-col gap-1'>
+              <Label className='text-[12px] font-semibold text-[#6b7785]'>계좌번호</Label>
+              <Controller
+                control={controlAcc}
+                name='accountNumber'
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    placeholder='하이픈 없이 숫자만'
+                    className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
+                  />
+                )}
+              />
+            </div>
+            <div className='flex flex-col gap-1'>
+              <Label className='text-[12px] font-semibold text-[#6b7785]'>예금주</Label>
+              <Controller
+                control={controlAcc}
+                name='accountHolder'
+                render={({ field }) => (
+                  <Input {...field} placeholder='예) 홍길동' className='h-9 rounded-xl border-[#dbe4ec] text-[13px]' />
+                )}
+              />
+            </div>
+            <div className='flex justify-end pt-1'>
+              <Button type='submit' disabled={isUpdatingAccount} className='h-9 rounded-full bg-[#1ba7a1] text-white'>
+                {isUpdatingAccount ? '저장 중…' : '저장'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+function OrderHistorySection() {
+  const storeIdFromAuth = useAuthStore((s) => s.storeId ?? s.currentActiveProfileId);
+  const effectiveStoreId = Number.isFinite(storeIdFromAuth as any) ? (storeIdFromAuth as number) : undefined;
+  const query = useGetOrdersHistoryInfinite(
+    (effectiveStoreId ?? 0) as number,
+    { size: 10 } as any,
+    {
+      query: {
+        enabled: !!effectiveStoreId,
+        getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
+        refetchOnWindowFocus: false,
+      },
+    } as any
+  );
+
+  const items = React.useMemo(() => {
+    const pages = (query.data?.pages ?? []) as any[];
+    const list = pages.flatMap((p) => (p?.data?.content?.content ?? []) as any[]);
+    return list
+      .filter((o) => o?.status === 'COMPLETED' || o?.status === 'REJECTED')
+      .map((o) => {
+        const first = o?.orderItems?.[0]?.product?.name ?? '주문 상품';
+        const count = Math.max(0, (o?.orderItems?.length ?? 0) - 1);
+        const title = count > 0 ? `${first} 외 ${count}건` : first;
+        const amount = Number(o?.totalPrice ?? 0);
+        const createdAt = o?.createdAt as string | undefined;
+        const d = createdAt ? new Date(createdAt) : undefined;
+        const two = (n: number) => String(n).padStart(2, '0');
+        const dateText = d
+          ? `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`
+          : '';
+        const statusLabel = o?.status === 'COMPLETED' ? '배달 완료' : '거절';
+        return { id: o?.id, title, amount, dateText, statusLabel };
+      });
+  }, [query.data]);
+
+  if (!effectiveStoreId) {
+    return (
+      <Card className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+        <CardContent className='px-4 py-6 text-center text-[13px] text-[#6b7785]'>상점이 없습니다.</CardContent>
+      </Card>
+    );
+  }
+
+  if (query.isLoading) {
+    return (
+      <section className='space-y-3'>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+            <CardContent className='space-y-3 px-4 py-4'>
+              <div className='h-4 w-32 animate-pulse rounded bg-slate-200' />
+              <div className='h-4 w-60 animate-pulse rounded bg-slate-200' />
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+    );
+  }
+
+  if (query.isError) {
+    return (
+      <Card className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+        <CardContent className='px-4 py-4 text-[12px] text-[#ef4444]'>주문 내역을 불러오지 못했어요.</CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <section className='space-y-3'>
+      {items.length === 0 ? (
+        <Card className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+          <CardContent className='px-4 py-6 text-center text-[13px] text-[#6b7785]'>
+            주문 내역이 비어 있어요.
+          </CardContent>
+        </Card>
+      ) : (
+        items.map((it) => (
+          <Card key={it.id} className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+            <CardContent className='flex items-center justify-between gap-3 px-4 py-3'>
+              <div className='flex-1'>
+                <p className='text-[14px] font-semibold text-[#1b1b1b]'>{it.title}</p>
+                <p className='text-[12px] text-[#6b7785]'>{it.dateText}</p>
+              </div>
+              <div className='text-right'>
+                <p className='text-[12px] font-semibold text-[#1b1b1b]'>
+                  ₩ {new Intl.NumberFormat('ko-KR').format(it.amount)}
+                </p>
+                <p className='text-[11px] text-[#475569]'>{it.statusLabel}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
+      {query.hasNextPage ? (
+        <div className='flex justify-center pt-1'>
+          <Button
+            variant='outline'
+            size='sm'
+            className='rounded-full'
+            onClick={() => query.fetchNextPage()}
+            disabled={query.isFetchingNextPage}>
+            {query.isFetchingNextPage ? '불러오는 중…' : '더 보기'}
+          </Button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ProductListWithInfinite({
   onAdd,
   onUpdate,
@@ -299,10 +503,13 @@ function ProductListWithInfinite({
   onUpdate(productId: string, product: ManagedProduct): void;
   onDelete(productId: string): void;
 }) {
-  const storeId = 1; // 임시: 전역/URL로 대체 예정
+  const navigate = useNavigate();
+  const storeIdFromAuth = useAuthStore((s) => s.storeId ?? s.currentActiveProfileId);
+  const effectiveStoreId = Number.isFinite(storeIdFromAuth as any) ? (storeIdFromAuth as number) : undefined;
   const params: SearchProductsParams = { request: { limit: 10 } };
-  const query = useSearchProductsInfinite<any>(storeId, params, {
+  const query = useSearchProductsInfinite<any>((effectiveStoreId ?? 0) as number, params, {
     query: {
+      enabled: !!effectiveStoreId,
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
       select: (data) => data,
@@ -313,9 +520,17 @@ function ProductListWithInfinite({
 
   const items: ManagedProduct[] = React.useMemo(() => {
     const pages = (query.data?.pages ?? []) as any[];
-    const list = pages.flatMap((p) => (p?.data?.content?.products ?? []) as any[]);
-    return list.map((p) => ({
-      id: String(p.id ?? crypto.randomUUID?.() ?? Math.random()),
+    // 우선순위: data.content.products → data.content.content → []
+    const list = pages.flatMap((p) => {
+      const d = (p as any)?.data?.content;
+      if (!d) return [] as any[];
+      const products = (d as any).products as any[] | undefined;
+      const content = (d as any).content as any[] | undefined;
+      return (products ?? content ?? []) as any[];
+    });
+    return list.map((p: any) => ({
+      // 백엔드 응답의 식별자 필드 우선 사용 (productId)
+      id: String(p.productId ?? p.id ?? ''),
       name: p.name ?? '',
       price: Number(p.price ?? 0),
       quantity: Number(p.stock?.quantity ?? 0),
@@ -344,6 +559,21 @@ function ProductListWithInfinite({
     return () => io.disconnect();
   }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
 
+  if (!effectiveStoreId) {
+    return (
+      <Card className='border-none bg-white shadow-[0_16px_48px_-32px_rgba(15,23,42,0.35)]'>
+        <CardContent className='space-y-3 px-4 py-6 text-center'>
+          <p className='text-[13px] text-[#6b7785]'>등록된 상점이 없습니다.</p>
+          <Button
+            className='h-9 rounded-full bg-[#2ac1bc] px-4 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'
+            onClick={() => navigate({ to: '/seller/create-store' })}>
+            상점 만들기
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <>
       <ProductManager products={items} onAdd={onAdd} onUpdate={onUpdate} onDelete={onDelete} />
@@ -371,19 +601,30 @@ function StoreManagementCard({
   const [editField, setEditField] = React.useState<'name' | 'roadAddr' | 'description' | null>(null);
   const [editLabel, setEditLabel] = React.useState('');
   const [editValue, setEditValue] = React.useState('');
+  const [editLat, setEditLat] = React.useState<number | ''>('');
+  const [editLng, setEditLng] = React.useState<number | ''>('');
 
   const startEdit = React.useCallback((field: 'name' | 'roadAddr' | 'description', label: string, value: string) => {
     setEditField(field);
     setEditLabel(label);
     setEditValue(value ?? '');
+    setEditLat('');
+    setEditLng('');
     setEditOpen(true);
   }, []);
 
   const saveEdit = React.useCallback(() => {
     if (!editField) return;
-    onUpdateField({ [editField]: editValue } as StoreUpdateRequest);
+    const partial: StoreUpdateRequest = { [editField]: editValue } as StoreUpdateRequest;
+    if (editField === 'roadAddr') {
+      if (editLat !== '' && editLng !== '') {
+        partial.lat = Number(editLat);
+        partial.lng = Number(editLng);
+      }
+    }
+    onUpdateField(partial);
     setEditOpen(false);
-  }, [editField, editValue, onUpdateField]);
+  }, [editField, editValue, editLat, editLng, onUpdateField]);
   return (
     <Card className='border-none bg-white shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)]'>
       <CardHeader className='pb-3'>
@@ -442,12 +683,38 @@ function StoreManagementCard({
           </DialogHeader>
           <div className='space-y-3 px-5 pb-5'>
             <Label className='text-[12px] font-semibold'>{editLabel}</Label>
-            <Input
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
-              autoFocus
-            />
+            {editField === 'roadAddr' ? (
+              <>
+                <KakaoAddressSearch
+                  onPick={(item) => {
+                    setEditValue(item.address);
+                    setEditLat(item.lat);
+                    setEditLng(item.lng);
+                  }}
+                />
+                <div className='grid grid-cols-2 gap-2'>
+                  <Input
+                    readOnly
+                    value={editLat as any}
+                    placeholder='위도'
+                    className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
+                  />
+                  <Input
+                    readOnly
+                    value={editLng as any}
+                    placeholder='경도'
+                    className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
+                  />
+                </div>
+              </>
+            ) : (
+              <Input
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className='h-9 rounded-xl border-[#dbe4ec] text-[13px]'
+                autoFocus
+              />
+            )}
             <div className='flex justify-end gap-2 pt-1'>
               <Button type='button' variant='outline' className='h-9 rounded-full' onClick={() => setEditOpen(false)}>
                 취소

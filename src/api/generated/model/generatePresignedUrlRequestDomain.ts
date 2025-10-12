@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * 업로드 도메인. 사용 가능한 값: USER_PROFILE, STORE, PRODUCT, REVIEW
+ */
 export type GeneratePresignedUrlRequestDomain =
   (typeof GeneratePresignedUrlRequestDomain)[keyof typeof GeneratePresignedUrlRequestDomain];
 

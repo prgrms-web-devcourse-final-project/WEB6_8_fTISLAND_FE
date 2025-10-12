@@ -4,6 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
+import { useGet, useCancel, getGetAllInfiniteQueryKey } from '@/api/generated';
+import { OrderResponseStatus } from '@/api/generated/model/orderResponseStatus';
+import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { Input } from '@/components/ui/input';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,12 +35,76 @@ function RouteComponent() {
   );
   const [riderAssigned, _setRiderAssigned] = React.useState(false);
   const [openCancel, setOpenCancel] = React.useState(false);
+  const { register, handleSubmit, reset } = useForm<{ cancelReason: string }>({ defaultValues: { cancelReason: '' } });
+  const numericOrderId = Number(orderId);
+  const orderQuery = useGet(numericOrderId, { query: { enabled: Number.isFinite(numericOrderId) } } as any);
+  const queryClient = useQueryClient();
+  const cancelMutation = useCancel({
+    mutation: {
+      onSuccess: () => {
+        toast.success('주문을 취소했어요');
+        queryClient.invalidateQueries({ queryKey: getGetAllInfiniteQueryKey(undefined) as any });
+        setStatus('completed');
+        setOpenCancel(false);
+        reset({ cancelReason: '' });
+      },
+      onError: () => {
+        toast.error('주문 취소에 실패했어요');
+      },
+    },
+  } as any);
 
-  const storeName = '골목 마트';
-  const menus = ['상품 1', '상품 2'];
-  const orderAmount = 18900;
-  const deliveryFee = 3000;
-  const totalAmount = orderAmount + deliveryFee;
+  React.useEffect(() => {
+    if (orderQuery.isError) {
+      toast.error('주문 상세를 불러오지 못했어요');
+    }
+  }, [orderQuery.isError]);
+
+  const order = (orderQuery.data as any)?.data?.content ?? undefined;
+
+  React.useEffect(() => {
+    const s = order?.status as string | undefined;
+    if (!s) return;
+    if (
+      [OrderResponseStatus.CREATED, OrderResponseStatus.PENDING, OrderResponseStatus.PAYMENT_FAILED].includes(
+        (s as any) ?? ''
+      )
+    ) {
+      setStatus('pending');
+    } else if ([OrderResponseStatus.PREPARING].includes((s as any) ?? '')) {
+      setStatus('accepted');
+    } else if ([OrderResponseStatus.RIDER_ASSIGNED, OrderResponseStatus.DELIVERING].includes((s as any) ?? '')) {
+      setStatus('delivering');
+    } else if (
+      [OrderResponseStatus.COMPLETED, OrderResponseStatus.CANCELED, OrderResponseStatus.REJECTED].includes(
+        (s as any) ?? ''
+      )
+    ) {
+      setStatus('completed');
+    }
+    _setRiderAssigned([OrderResponseStatus.RIDER_ASSIGNED, OrderResponseStatus.DELIVERING].includes((s as any) ?? ''));
+  }, [order?.status]);
+
+  const storeName = (order?.storeName as string | undefined) ?? '가게';
+  const menus = ((order?.orderItems as any[]) ?? [])
+    .map((it) => {
+      const n = it?.product?.name as string | undefined;
+      const q = it?.quantity as number | undefined;
+      return n ? (q ? `${n} x${q}` : n) : undefined;
+    })
+    .filter(Boolean) as string[];
+  const orderAmount = (order?.storePrice as number | undefined) ?? 0;
+  const deliveryFee = (order?.deliveryPrice as number | undefined) ?? 0;
+  const totalAmount = (order?.totalPrice as number | undefined) ?? orderAmount + deliveryFee;
+  const address = (order?.address as string | undefined) ?? '';
+  const createdAt = (order?.createdAt as string | undefined) ?? '';
+  const createdAtText = React.useMemo(() => {
+    if (!createdAt) return '';
+    const d = new Date(createdAt);
+    const two = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;
+  }, [createdAt]);
+  const orderNumber = (order?.merchantId as string | undefined) ?? String(order?.id ?? orderId);
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
@@ -123,15 +193,15 @@ function RouteComponent() {
           <CardContent className='space-y-2 px-4 py-4 text-[12px] text-[#1b1b1b] sm:px-5'>
             <div className='flex items-center justify-between'>
               <span className='text-[#6b7785]'>배달 주소</span>
-              <span>서울시 성북구 돌곶이로 27 101호</span>
+              <span>{address}</span>
             </div>
             <div className='flex items-center justify-between'>
               <span className='text-[#6b7785]'>주문 일시</span>
-              <span>2025-10-04 18:12</span>
+              <span>{createdAtText}</span>
             </div>
             <div className='flex items-center justify-between'>
               <span className='text-[#6b7785]'>주문 번호</span>
-              <span>{orderId.toUpperCase()}</span>
+              <span>{orderNumber}</span>
             </div>
           </CardContent>
         </Card>
@@ -162,17 +232,27 @@ function RouteComponent() {
           <AlertDialogHeader>
             <AlertDialogTitle>주문을 취소하시겠습니까?</AlertDialogTitle>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setStatus('completed');
-                setOpenCancel(false);
-              }}
-              className='bg-[#f43f5e] hover:bg-[#e11d48]'>
-              취소하기
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          <form
+            onSubmit={handleSubmit(({ cancelReason }) => {
+              if (!Number.isFinite(numericOrderId)) return;
+              cancelMutation.mutate({ orderId: numericOrderId, data: { cancelReason } } as any);
+            })}>
+            <div className='space-y-2 px-1 pb-2 pt-1'>
+              <Label className='text-[12px] text-[#6b7785]'>취소 사유</Label>
+              <Input
+                placeholder='취소 사유를 입력해 주세요 (최대 200자)'
+                className='h-9 text-[13px]'
+                maxLength={200}
+                {...register('cancelReason', { required: true })}
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel type='button'>닫기</AlertDialogCancel>
+              <AlertDialogAction type='submit' className='bg-[#f43f5e] hover:bg-[#e11d48]'>
+                취소하기
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </form>
         </AlertDialogContent>
       </AlertDialog>
     </div>

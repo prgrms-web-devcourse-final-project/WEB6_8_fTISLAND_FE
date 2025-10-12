@@ -7,6 +7,9 @@
  */
 import type { ReviewResponse } from './reviewResponse';
 
+/**
+ * 리뷰 리스트
+ */
 export interface CursorPageResponseReviewResponse {
   content?: ReviewResponse[];
   nextPageToken?: string;

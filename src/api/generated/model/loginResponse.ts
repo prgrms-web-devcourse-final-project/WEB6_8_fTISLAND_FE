@@ -7,13 +7,15 @@
  */
 import type { LoginResponseCurrentActiveProfileType } from './loginResponseCurrentActiveProfileType';
 import type { LoginResponseAvailableProfilesItem } from './loginResponseAvailableProfilesItem';
+import type { LoginResponseCurrentProfileDetail } from './loginResponseCurrentProfileDetail';
 
 export interface LoginResponse {
   userId?: number;
   email?: string;
-  name?: string;
+  username?: string;
   currentActiveProfileType?: LoginResponseCurrentActiveProfileType;
   currentActiveProfileId?: number;
-  isOnboardingCompleted?: boolean;
   availableProfiles?: LoginResponseAvailableProfilesItem[];
+  storeId?: number;
+  currentProfileDetail?: LoginResponseCurrentProfileDetail;
 }

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import {
   Banknote,
   Building2,
@@ -11,13 +11,17 @@ import {
   FileSignature,
   IdCard,
   ImageIcon,
-  MapPin,
   Phone,
   ShieldCheck,
   Upload,
 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { usePresignedUpload } from '@/lib/usePresignedUpload';
+import { GeneratePresignedUrlRequestDomain } from '@/api/generated/model/generatePresignedUrlRequestDomain';
+import { useCreateProfile } from '@/api/generated';
+import { CreateProfileRequestProfileType } from '@/api/generated/model/createProfileRequestProfileType';
+import { toast } from 'sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -30,6 +34,7 @@ interface SellerProfileFormValues {
   bizNumber: string;
   openDate: Date | null;
   ownerName: string;
+  businessName: string;
   storeNickname: string;
   storeAddress: string;
   storePhone: string;
@@ -37,6 +42,7 @@ interface SellerProfileFormValues {
   accountNumber: string;
   accountHolder: string;
   brandLogo: FileList | undefined;
+  profileImageUrl: string;
 }
 
 const REQUIRED_STEPS = [
@@ -78,6 +84,8 @@ function renderRequiredLabel(label: string | React.ReactNode) {
 
 function RouteComponent() {
   const brandLogoInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadMutation = usePresignedUpload();
+  const navigate = useNavigate();
   const [openDatePopoverOpen, setOpenDatePopoverOpen] = useState(false);
 
   const {
@@ -85,12 +93,15 @@ function RouteComponent() {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    setValue,
+    formState: { errors, isSubmitting, isValid },
   } = useForm<SellerProfileFormValues>({
+    mode: 'onChange',
     defaultValues: {
       bizNumber: '',
       openDate: null,
       ownerName: '',
+      businessName: '',
       storeNickname: '',
       storeAddress: '',
       storePhone: '',
@@ -98,15 +109,43 @@ function RouteComponent() {
       accountNumber: '',
       accountHolder: '',
       brandLogo: undefined,
+      profileImageUrl: '',
     },
   });
 
   const brandLogoFile = watch('brandLogo');
+  const uploadedUrl = watch('profileImageUrl');
   const brandLogoName = useMemo(() => brandLogoFile?.[0]?.name ?? '', [brandLogoFile]);
 
-  const onSubmit = useCallback((data: SellerProfileFormValues) => {
-    console.log('seller profile submit', data);
-  }, []);
+  const createProfileMutation = useCreateProfile({
+    mutation: {
+      onSuccess: () => {
+        toast.success('판매자 프로필이 생성되었습니다.');
+        navigate({ to: '/seller' });
+      },
+    },
+  });
+
+  const onSubmit = useCallback(
+    async (data: SellerProfileFormValues) => {
+      await createProfileMutation.mutateAsync({
+        data: {
+          profileType: CreateProfileRequestProfileType.SELLER,
+          profileData: {
+            nickname: data.storeNickname,
+            businessName: data.businessName,
+            businessCertificateNumber: data.bizNumber,
+            businessPhoneNumber: data.storePhone,
+            bankName: data.bankName || undefined,
+            accountNumber: data.accountNumber || undefined,
+            accountHolder: data.accountHolder || undefined,
+            profileImageUrl: data.profileImageUrl || undefined,
+          },
+        },
+      });
+    },
+    [createProfileMutation]
+  );
 
   // const onDraftSave = useCallback((data: SellerProfileFormValues) => {
   //   console.log('seller profile draft', data);
@@ -174,6 +213,16 @@ function RouteComponent() {
                 className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
                 {...register('bizNumber', {
                   required: '사업자등록번호를 입력해 주세요.',
+                })}
+              />
+            </FieldRow>
+            <FieldRow icon={Building2} label={renderRequiredLabel('*사업자 상호')} error={errors.businessName?.message}>
+              <Input
+                id='business-name'
+                placeholder='사업자 등록 상호(법인명)를 입력해 주세요'
+                className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
+                {...register('businessName', {
+                  required: '사업자 상호를 입력해 주세요.',
                 })}
               />
             </FieldRow>
@@ -252,16 +301,18 @@ function RouteComponent() {
                 상표 · 로고 이미지
               </Label>
               <div className='flex items-center gap-3 rounded-2xl border border-dashed border-[#bbe7e4] bg-[#f0fffd] px-3.5 py-3.5 sm:px-4 sm:py-4'>
-                <div className='flex size-12 items-center justify-center rounded-xl bg-white text-[#2ac1bc] shadow-sm sm:size-14'>
-                  <Upload className='size-[18px] sm:size-5' aria-hidden />
-                </div>
+                {uploadedUrl ? (
+                  <img
+                    src={uploadedUrl}
+                    alt='로고 미리보기'
+                    className='size-12 rounded-xl border border-[#e2e8f0] object-cover shadow-sm sm:size-14'
+                  />
+                ) : (
+                  <div className='flex size-12 items-center justify-center rounded-xl bg-white text-[#2ac1bc] shadow-sm sm:size-14'>
+                    <Upload className='size-[18px] sm:size-5' aria-hidden />
+                  </div>
+                )}
                 <div className='flex-1 space-y-1'>
-                  <p className='text-sm font-semibold text-[#1b1b1b]'>매장 대표 이미지</p>
-                  <p className='text-[12px] text-[#6b7785] sm:text-xs'>
-                    PNG/JPG
-                    <br />
-                    10MB 이하 권장
-                  </p>
                   {brandLogoName ? (
                     <p className='text-[11px] text-[#1f6e6b] sm:text-xs'>선택한 파일: {brandLogoName}</p>
                   ) : null}
@@ -269,7 +320,8 @@ function RouteComponent() {
                 <Button
                   type='button'
                   variant='outline'
-                  className='h-9 rounded-full border-[#2ac1bc]/50 px-3 text-[12px] font-semibold text-[#2ac1bc] hover:bg-[#2ac1bc]/10 sm:px-4 sm:text-xs'
+                  disabled={uploadMutation.isPending}
+                  className='h-9 rounded-full border-[#2ac1bc]/50 px-3 text-[12px] font-semibold text-[#2ac1bc] hover:bg-[#2ac1bc]/10 disabled:cursor-not-allowed disabled:opacity-70 sm:px-4 sm:text-xs'
                   onClick={() => brandLogoInputRef.current?.click()}>
                   파일 선택
                 </Button>
@@ -283,7 +335,21 @@ function RouteComponent() {
                     brandLogoInputRef.current = node;
                     registerBrandLogoRef(node);
                   }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const { objectUrl } = await uploadMutation.mutateAsync({
+                        file,
+                        domain: GeneratePresignedUrlRequestDomain.STORE,
+                      });
+                      setValue('profileImageUrl', objectUrl, { shouldDirty: true });
+                    } finally {
+                      e.currentTarget.value = '';
+                    }
+                  }}
                 />
+                <input type='hidden' {...register('profileImageUrl')} />
               </div>
             </section>
 
@@ -297,11 +363,6 @@ function RouteComponent() {
                     required: '상점 닉네임을 입력해 주세요.',
                   })}
                 />
-                <Button
-                  variant='outline'
-                  className='h-10 rounded-xl border-[#dbe4ec] px-3 text-[12px] font-semibold text-[#2ac1bc] hover:border-[#2ac1bc] hover:bg-[#2ac1bc]/10 sm:h-11 sm:px-4 sm:text-xs'>
-                  중복 체크
-                </Button>
               </div>
               <p className='mt-1 text-[12px] text-[#6b7785] sm:text-xs'>
                 검색 시 노출되는 이름이니 가독성 있는 표현이 좋아요.
@@ -311,18 +372,18 @@ function RouteComponent() {
         </Card>
 
         <Card className='border-none bg-white shadow-sm'>
-          <CardHeader className='space-y-2 pb-2.5 sm:pb-3'>
+          <CardHeader className='space-y-2 pb-1 sm:pb-3'>
             <CardTitle className='text-[15px] font-semibold text-[#1b1b1b] sm:text-lg'>매장 연락 · 위치</CardTitle>
           </CardHeader>
           <CardContent className='space-y-4'>
-            <FieldRow icon={MapPin} label='사업장 주소'>
+            {/* <FieldRow icon={MapPin} label='사업장 주소'>
               <Input
                 id='store-address'
                 placeholder='도로명 주소를 입력해 주세요'
                 className='h-10 rounded-xl border-[#dbe4ec] text-[13px] sm:h-11 sm:text-sm'
                 {...register('storeAddress')}
               />
-            </FieldRow>
+            </FieldRow> */}
             <FieldRow icon={Phone} label={renderRequiredLabel('*사업장 전화번호')} error={errors.storePhone?.message}>
               <div className='flex items-center gap-2'>
                 <Input
@@ -337,12 +398,6 @@ function RouteComponent() {
                     },
                   })}
                 />
-                <Button
-                  type='button'
-                  variant='outline'
-                  className='h-10 rounded-xl border-[#dbe4ec] px-3 text-[12px] font-semibold text-[#2ac1bc] hover:border-[#2ac1bc] hover:bg-[#2ac1bc]/10 sm:h-11 sm:px-4 sm:text-xs'>
-                  인증하기
-                </Button>
               </div>
             </FieldRow>
           </CardContent>
@@ -384,7 +439,7 @@ function RouteComponent() {
         <div className='mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center'>
           <Button
             type='submit'
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isValid}
             className='h-10 w-full rounded-full bg-[#1ba7a1] text-[13px] font-semibold text-white hover:bg-[#17928d] disabled:cursor-not-allowed disabled:opacity-70 sm:h-11 sm:w-auto sm:px-8'>
             판매자 프로필 제출하기
           </Button>

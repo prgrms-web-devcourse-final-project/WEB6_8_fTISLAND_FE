@@ -21,16 +21,22 @@ function RouteComponent() {
           setAuth({
             userId: c.userId,
             email: c.email,
-            name: c.name,
+            name: (c as any).name ?? (c as any).username,
             currentActiveProfileType: c.currentActiveProfileType,
             currentActiveProfileId: c.currentActiveProfileId,
+            storeId: (c as any).storeId ?? (c as any)?.currentProfileDetail?.storeId,
             isOnboardingCompleted: c.isOnboardingCompleted,
             availableProfiles: c.availableProfiles,
             accessToken: c.accessToken,
             refreshToken: c.refreshToken,
           });
           toast.success('로그인에 성공했어요.');
-          if (!c.isOnboardingCompleted) {
+          // 프로필이 하나도 없으면 프로필 생성 페이지로 유도
+          if (!Array.isArray(c.availableProfiles) || c.availableProfiles.length === 0) {
+            navigate({ to: '/make-profile' });
+            return;
+          }
+          if (c.isOnboardingCompleted === false) {
             navigate({ to: '/make-profile' });
             return;
           }

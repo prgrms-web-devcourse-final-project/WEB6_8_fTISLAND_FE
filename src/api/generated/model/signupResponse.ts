@@ -9,6 +9,5 @@
 export interface SignupResponse {
   userId?: number;
   email?: string;
-  name?: string;
-  isOnboardingCompleted?: boolean;
+  username?: string;
 }

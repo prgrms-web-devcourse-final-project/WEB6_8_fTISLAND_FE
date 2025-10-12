@@ -4,69 +4,35 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft } from 'lucide-react';
+import { useGetAllInfinite } from '@/api/generated';
+import { OrderResponseStatus } from '@/api/generated/model/orderResponseStatus';
+// import { toast } from 'sonner';
 
 export const Route = createFileRoute('/(dashboard)/customer/orders/')({
   component: RouteComponent,
 });
 
-type OrderItem = {
-  id: string;
-  store: string;
-  menu: string;
-  amount: number;
-  date: string;
-  status: 'preparing' | 'delivering' | 'completed' | 'cancelled';
-};
-
-const sampleOngoing: OrderItem[] = [
-  {
-    id: 'o1',
-    store: '골목 마트',
-    menu: '상품 1 외 2건',
-    amount: 18900,
-    date: '2025-10-04 18:12',
-    status: 'delivering',
-  },
-  { id: 'o2', store: '꽃집 토도', menu: '장미다발', amount: 25900, date: '2025-10-04 17:40', status: 'preparing' },
-];
-
-const sampleCompleted: OrderItem[] = [
-  {
-    id: 'c1',
-    store: '동네 베이커리',
-    menu: '크루아상 세트',
-    amount: 12900,
-    date: '2025-10-03 12:21',
-    status: 'completed',
-  },
-  { id: 'c2', store: '약국 굿헬스', menu: '영양제', amount: 34900, date: '2025-10-02 20:05', status: 'completed' },
-];
-
-function OrderRow({ item }: { item: OrderItem }) {
+function OrderRow({
+  item,
+}: {
+  item: {
+    id: number | string;
+    storeName?: string;
+    menuText?: string;
+    amount?: number;
+    dateText?: string;
+  };
+}) {
   return (
     <Card className='border-none bg-white shadow-sm'>
       <CardContent className='flex items-start justify-between gap-3 px-4 py-3'>
         <div className='space-y-0.5'>
-          <p className='text-[14px] font-semibold text-[#1b1b1b]'>{item.store}</p>
-          <p className='text-[12px] text-[#6b7785]'>{item.menu}</p>
-          <p className='text-[12px] font-semibold text-[#1b1b1b]'>₩ {item.amount.toLocaleString()}</p>
-          <p className='text-[11px] text-[#94a3b8]'>
-            {item.date} ·{' '}
-            {item.status === 'delivering'
-              ? '배달 중'
-              : item.status === 'preparing'
-                ? '준비 중'
-                : item.status === 'completed'
-                  ? '완료'
-                  : '취소'}
-          </p>
+          <p className='text-[14px] font-semibold text-[#1b1b1b]'>{item.storeName ?? '가게'}</p>
+          <p className='text-[12px] text-[#6b7785]'>{item.menuText ?? ''}</p>
+          <p className='text-[12px] font-semibold text-[#1b1b1b]'>₩ {(item.amount ?? 0).toLocaleString()}</p>
+          <p className='text-[11px] text-[#94a3b8]'>{item.dateText}</p>
         </div>
         <div className='flex flex-col items-end gap-2'>
-          <Button
-            variant='outline'
-            className='h-8 rounded-full border-[#dbe4ec] px-3 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'>
-            실시간 위치 보기
-          </Button>
           <Button className='h-8 rounded-full bg-[#2ac1bc] px-3 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'>
             상세보기
           </Button>
@@ -77,6 +43,73 @@ function OrderRow({ item }: { item: OrderItem }) {
 }
 
 function RouteComponent() {
+  const ordersQuery = useGetAllInfinite(
+    { size: 10 },
+    {
+      query: {
+        getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
+      },
+    }
+  );
+
+  const pages = (ordersQuery.data as any)?.pages ?? [];
+  const allOrders = pages.flatMap((p: any) => p?.data?.content?.content ?? []);
+
+  const isOngoing = (s?: string) =>
+    [
+      OrderResponseStatus.CREATED,
+      OrderResponseStatus.PENDING,
+      OrderResponseStatus.PREPARING,
+      OrderResponseStatus.RIDER_ASSIGNED,
+      OrderResponseStatus.DELIVERING,
+      OrderResponseStatus.CANCELLATION_REQUESTED,
+    ].includes((s as any) ?? '');
+
+  const isCompleted = (s?: string) =>
+    [
+      OrderResponseStatus.COMPLETED,
+      OrderResponseStatus.CANCELED,
+      OrderResponseStatus.REJECTED,
+      OrderResponseStatus.PAYMENT_FAILED,
+    ].includes((s as any) ?? '');
+
+  const toRow = (o: any) => {
+    const items = (o?.orderItems ?? []) as any[];
+    const firstName = items?.[0]?.product?.name as string | undefined;
+    const restCount = Math.max(0, (items?.length ?? 0) - 1);
+    const menuText = firstName
+      ? restCount > 0
+        ? `${firstName} 외 ${restCount}건`
+        : firstName
+      : `주문 ${items?.length ?? 0}건`;
+    const createdAt = o?.createdAt as string | undefined;
+    const date = createdAt ? new Date(createdAt) : undefined;
+    const two = (n: number) => String(n).padStart(2, '0');
+    const dateText = date
+      ? `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())} ${two(date.getHours())}:${two(date.getMinutes())}`
+      : '';
+    const status = o?.status as string | undefined;
+    const statusText = isOngoing(status)
+      ? status === OrderResponseStatus.DELIVERING
+        ? '배달 중'
+        : status === OrderResponseStatus.PREPARING
+          ? '준비 중'
+          : '진행 중'
+      : isCompleted(status)
+        ? '완료'
+        : '';
+
+    return {
+      id: o?.id ?? '',
+      storeName: o?.storeName ?? '가게',
+      menuText,
+      amount: o?.totalPrice ?? 0,
+      dateText: `${dateText}${statusText ? ` · ${statusText}` : ''}`,
+    };
+  };
+
+  const ongoingOrders = allOrders.filter((o: any) => isOngoing(o?.status)).map(toRow);
+  const completedOrders = allOrders.filter((o: any) => isCompleted(o?.status)).map(toRow);
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
       <header className='px-4 pb-5 pt-9 text-white sm:px-6 sm:pt-10'>
@@ -109,18 +142,30 @@ function RouteComponent() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value='ongoing' className='mt-3 space-y-3'>
-            {sampleOngoing.map((o) => (
-              <a key={o.id} href={`/customer/orders/${o.id}?status=${o.status}`}>
+            {ongoingOrders.map((o: { id: number | string }) => (
+              <a key={o.id} href={`/customer/orders/${o.id}`}>
                 <OrderRow item={o} />
               </a>
             ))}
           </TabsContent>
           <TabsContent value='completed' className='mt-3 space-y-3'>
-            {sampleCompleted.map((o) => (
-              <a key={o.id} href={`/customer/orders/${o.id}?status=completed`}>
+            {completedOrders.map((o: { id: number | string }) => (
+              <a key={o.id} href={`/customer/orders/${o.id}`}>
                 <OrderRow item={o} />
               </a>
             ))}
+            {ordersQuery.hasNextPage ? (
+              <div className='flex justify-center pt-2'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='rounded-full'
+                  onClick={() => ordersQuery.fetchNextPage()}
+                  disabled={ordersQuery.isFetchingNextPage}>
+                  {ordersQuery.isFetchingNextPage ? '불러오는 중…' : '더 보기'}
+                </Button>
+              </div>
+            ) : null}
           </TabsContent>
         </Tabs>
         <div className='h-[calc(68px+env(safe-area-inset-bottom))]' />
