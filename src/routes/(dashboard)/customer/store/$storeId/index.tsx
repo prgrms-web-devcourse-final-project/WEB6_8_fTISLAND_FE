@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Heart, Menu, Search, Star } from 'lucide-react';
+import { ArrowLeft, Menu, Search, Star } from 'lucide-react';
 import { useGetStore, useSearchProductsInfinite } from '@/api/generated';
 import type { SearchProductsParams } from '@/api/generated/model/searchProductsParams';
 
@@ -14,7 +14,6 @@ export const Route = createFileRoute('/(dashboard)/customer/store/$storeId/')({
 function RouteComponent() {
   const navigate = useNavigate();
   const { storeId } = Route.useParams();
-  const [favorite, setFavorite] = React.useState(false);
 
   const numericStoreId = Number(storeId);
   const storeQuery = useGetStore(numericStoreId, {

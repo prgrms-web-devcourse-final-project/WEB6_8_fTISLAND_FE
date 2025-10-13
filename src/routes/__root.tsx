@@ -1,6 +1,6 @@
 import { Outlet, createRootRoute, useLocation, useNavigate } from '@tanstack/react-router';
 import { CustomerFooterNav } from './(dashboard)/customer/_components/CustomerFooterNav';
-import { Heart, Home, ListFilter, Search, User } from 'lucide-react';
+import { Home, ListFilter, Search, User } from 'lucide-react';
 
 export const Route = createRootRoute({
   component: RootComponent,

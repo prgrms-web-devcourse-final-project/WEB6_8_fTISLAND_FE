@@ -19,11 +19,15 @@ function RouteComponent() {
   const { orderId, paymentKey } = Route.useSearch();
   const payMutation = usePay({
     mutation: {
-      onSuccess: (res) => {
+      onSuccess: (res: any) => {
         const content = (res as any)?.data?.content ?? (res as any)?.content;
         const id = content?.id ?? content?.orderId ?? orderId;
         toast.success('결제가 완료되었습니다.');
-        navigate({ to: '/(dashboard)/customer/orders/$orderId', params: { orderId: String(id ?? orderId) } });
+        navigate({
+          to: '/customer/orders/$orderId',
+          params: { orderId: String(id ?? orderId) },
+          search: { status: 'pending' },
+        });
       },
       onError: () => {
         toast.error('결제 확정에 실패했습니다.');

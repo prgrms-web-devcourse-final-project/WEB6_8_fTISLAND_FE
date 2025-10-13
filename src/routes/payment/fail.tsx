@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 
@@ -26,7 +25,11 @@ function RouteComponent() {
           <Button
             className='h-10 rounded-full bg-[#2ac1bc] px-4 text-[13px] text-white hover:bg-[#21a9a4]'
             onClick={() =>
-              navigate({ to: '/(dashboard)/customer/orders/$orderId', params: { orderId: String(orderId) } })
+              navigate({
+                to: '/customer/orders/$orderId',
+                params: { orderId: String(orderId) },
+                search: { status: 'pending' },
+              })
             }>
             주문 상세 보기
           </Button>
@@ -34,7 +37,7 @@ function RouteComponent() {
         <Button
           variant='outline'
           className='h-10 rounded-full border-[#dbe4ec] px-4 text-[13px] text-[#1b1b1b]'
-          onClick={() => navigate({ to: '/(dashboard)/customer/' })}>
+          onClick={() => navigate({ to: '/customer' })}>
           홈으로 돌아가기
         </Button>
       </div>
