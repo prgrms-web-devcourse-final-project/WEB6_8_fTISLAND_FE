@@ -3,9 +3,14 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Search, Star } from 'lucide-react';
 import StoreFilterSheet, { type StoreFilterValue } from '@/components/StoreFilterSheet';
 import { CustomerHeader } from '../_components/CustomerHeader';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { http } from '@/api/core';
+import { useGetMyProfile2, useGetAddress } from '@/api/generated';
+import AddressManage from '@/components/address/AddressManage';
 
 export const Route = createFileRoute('/(dashboard)/customer/search/')({
   component: RouteComponent,
@@ -16,16 +21,50 @@ function RouteComponent() {
   const [keyword, setKeyword] = React.useState('');
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<Partial<StoreFilterValue>>({});
+  const [addressOpen, setAddressOpen] = React.useState(false);
 
-  const allStores = Array.from({ length: 20 }).map((_, i) => ({ id: `store-${i + 1}`, name: `상점 ${i + 1}` }));
-  const results = allStores.filter((s) => s.name.includes(keyword));
+  // 프로필/주소
+  const myProfileQuery = useGetMyProfile2();
+  const profile = (myProfileQuery.data as any)?.data?.content;
+  const nickname = profile?.nickname ?? profile?.user?.username ?? '뭐든배달';
+  const profileImageUrl = profile?.profileImageUrl as string | undefined;
+  const defaultAddressId = profile?.defaultAddressId as number | undefined;
+  const addressQuery = useGetAddress(defaultAddressId ?? 0, { query: { enabled: !!defaultAddressId } } as any);
+  const boundAddress = (addressQuery.data as any)?.data?.content?.address as string | undefined;
+  const [address, setAddress] = React.useState<string>('주소를 등록해 주세요');
+  React.useEffect(() => {
+    if (boundAddress) setAddress(boundAddress);
+  }, [boundAddress]);
+  const addressLat = (addressQuery.data as any)?.data?.content?.latitude as number | undefined;
+  const addressLng = (addressQuery.data as any)?.data?.content?.longitude as number | undefined;
+  const lat = Number.isFinite(addressLat as any) ? (addressLat as number) : 37.5665;
+  const lng = Number.isFinite(addressLng as any) ? (addressLng as number) : 126.978;
+
+  // 검색 API
+  const distanceKm = (filters as any)?.distanceKm ?? 3;
+  const storesQuery = useInfiniteQuery({
+    queryKey: ['search-stores-page', { lat, lng, distanceKm, keyword }],
+    queryFn: async ({ pageParam, signal }) => {
+      const params: any = { lat, lng, distanceKm, limit: 12 };
+      if (keyword.trim()) params.searchText = keyword.trim();
+      if (pageParam) params.nextPageToken = pageParam;
+      return await http.get('/api/v1/search/stores', { params, signal });
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
+    refetchOnWindowFocus: false,
+  });
+  const pages = (storesQuery.data as any)?.pages ?? [];
+  const results = pages.flatMap((p: any) => p?.data?.content?.stores ?? []);
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
       <CustomerHeader
-        nickname='뭐든배달'
-        address='서울시 성북구 돌곶이로 27'
+        nickname={nickname}
+        profileImageUrl={profileImageUrl}
+        address={address}
         headlineLines={['원하는 가게를', '지금 바로 찾아보세요']}
+        onClickAddress={() => setAddressOpen(true)}
       />
 
       <main className='flex-1 space-y-4 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline-[1.5px] outline-[#2ac1bc]/15 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>
@@ -41,6 +80,9 @@ function RouteComponent() {
                 className='h-9 flex-1 border-0 bg-transparent text-[13px] text-[#1b1b1b] placeholder:text-[#9aa5b1] focus-visible:ring-0'
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') storesQuery.refetch();
+                }}
               />
               <Button
                 variant='ghost'
@@ -54,18 +96,18 @@ function RouteComponent() {
         </Card>
 
         <div className='max-h-[calc(100dvh-320px)] space-y-3 overflow-y-auto sm:max-h-[calc(100dvh-340px)]'>
-          {results.map((s) => (
+          {results.map((s: any) => (
             <Card
-              key={s.id}
+              key={s.storeId}
               className='cursor-pointer border-none bg-white shadow-sm'
-              onClick={() => navigate({ to: '/customer/store/$storeId', params: { storeId: s.id } })}>
+              onClick={() => navigate({ to: '/customer/store/$storeId', params: { storeId: String(s.storeId) } })}>
               <CardContent className='flex items-center gap-3 px-4 py-3'>
                 <div className='flex size-16 items-center justify-center rounded-2xl bg-[#e2f6f5] text-[#1f6e6b]'>
                   <Star className='size-4 text-[#2ac1bc]' aria-hidden />
                 </div>
                 <div className='flex-1'>
                   <p className='text-[14px] font-semibold text-[#1b1b1b]'>{s.name}</p>
-                  <p className='text-[12px] text-[#6b7785]'>지금 바로 주문해 보세요</p>
+                  <p className='text-[12px] text-[#6b7785]'>{s.distanceText ?? ''}</p>
                 </div>
                 <Button
                   size='sm'
@@ -75,6 +117,18 @@ function RouteComponent() {
               </CardContent>
             </Card>
           ))}
+          {storesQuery.hasNextPage ? (
+            <div className='flex justify-center pt-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                className='rounded-full'
+                onClick={() => storesQuery.fetchNextPage()}
+                disabled={storesQuery.isFetchingNextPage}>
+                {storesQuery.isFetchingNextPage ? '불러오는 중…' : '더 보기'}
+              </Button>
+            </div>
+          ) : null}
         </div>
       </main>
 
@@ -85,6 +139,24 @@ function RouteComponent() {
         onApply={(v) => setFilters(v)}
         onReset={() => setFilters({})}
       />
+
+      <Dialog open={addressOpen} onOpenChange={setAddressOpen}>
+        <DialogContent className='mx-auto w-[90%] max-w-[28rem] max-h-[85vh] overflow-hidden rounded-3xl border-0 p-0 shadow-2xl'>
+          <AddressManage
+            defaultOpen
+            asDialog
+            role='customer'
+            onSave={async (v) => {
+              if (v.selectedAddress?.address) setAddress(v.selectedAddress.address);
+              try {
+                await myProfileQuery.refetch();
+                await addressQuery.refetch();
+              } catch {}
+            }}
+            onClose={() => setAddressOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

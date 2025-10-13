@@ -6,7 +6,7 @@ import { ArrowLeft, Filter, Search, Star } from 'lucide-react';
 import StoreFilterSheet, { type StoreFilterValue } from '@/components/StoreFilterSheet';
 import { useQuery } from '@tanstack/react-query';
 import { http } from '@/api/core';
-import { useGetMyProfile2, useGetAddress, useSearchStoresInfinite } from '@/api/generated';
+import { useGetMyProfile2, useGetAddress } from '@/api/generated';
 import type { StoreSearchRequest } from '@/api/generated/model/storeSearchRequest';
 
 export const Route = createFileRoute('/(dashboard)/customer/category/$category/')({
@@ -57,19 +57,29 @@ function RouteComponent() {
   const lngRaw = (addressQuery.data as any)?.data?.content?.longitude as number | undefined;
   const lat = Number.isFinite(latRaw) ? Math.trunc(latRaw as number) : Math.trunc(37.5665);
   const lng = Number.isFinite(lngRaw) ? Math.trunc(lngRaw as number) : Math.trunc(126.978);
-  const req: StoreSearchRequest = { lat, lng, distanceKm: 3, limit: 12, categoryId: selectedCategoryId };
-  const storesQuery = useSearchStoresInfinite(
-    { request: req } as any,
-    {
-      query: {
-        getNextPageParam: (lastPage: any) =>
-          lastPage?.data?.content?.nextPageToken ? lastPage.data.content.nextPageToken : undefined,
-        enabled: !!selectedCategoryId,
-      },
-    } as any
-  );
-  const pages = (storesQuery.data as any)?.pages ?? [];
-  const stores = pages.flatMap((p: any) => p?.data?.content?.stores ?? []);
+  const req: StoreSearchRequest = {
+    lat,
+    lng,
+    distanceKm: (filters as any)?.distanceKm ?? 3,
+    limit: 12,
+    categoryId: selectedCategoryId,
+  };
+  const storesQuery = useQuery({
+    queryKey: ['search-stores', req],
+    queryFn: async ({ signal }) => {
+      const params: any = {
+        lat: req.lat,
+        lng: req.lng,
+        distanceKm: req.distanceKm,
+        limit: req.limit,
+        categoryId: req.categoryId,
+      };
+      return await http.get('/api/v1/search/stores', { params, signal });
+    },
+    enabled: !!selectedCategoryId,
+    refetchOnWindowFocus: false,
+  });
+  const stores = ((storesQuery.data as any)?.data?.content?.stores ?? []) as any[];
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
@@ -156,18 +166,7 @@ function RouteComponent() {
               </CardContent>
             </Card>
           ))}
-          {storesQuery.hasNextPage ? (
-            <div className='flex justify-center pt-2'>
-              <Button
-                variant='outline'
-                size='sm'
-                className='rounded-full'
-                onClick={() => storesQuery.fetchNextPage()}
-                disabled={storesQuery.isFetchingNextPage}>
-                {storesQuery.isFetchingNextPage ? '불러오는 중…' : '더 보기'}
-              </Button>
-            </div>
-          ) : null}
+          {/* 카테고리 페이지는 제한된 개수 노출. 더보기는 검색 페이지로 유도 가능 */}
         </div>
       </main>
 

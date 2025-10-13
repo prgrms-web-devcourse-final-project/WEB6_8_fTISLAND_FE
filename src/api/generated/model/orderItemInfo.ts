@@ -6,7 +6,9 @@
  * OpenAPI spec version: v1
  */
 
-export interface CoordinateSequence {
-  measures?: number;
-  dimension?: number;
+export interface OrderItemInfo {
+  productId?: number;
+  productName?: string;
+  quantity?: number;
+  price?: number;
 }

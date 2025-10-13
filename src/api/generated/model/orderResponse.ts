@@ -5,12 +5,12 @@
  * 뭐든배달 API 명세서입니다
  * OpenAPI spec version: v1
  */
-import type { OrderItem } from './orderItem';
+import type { OrderItemInfo } from './orderItemInfo';
 import type { OrderResponseStatus } from './orderResponseStatus';
 
 export interface OrderResponse {
   id?: number;
-  orderItems?: OrderItem[];
+  orderItems?: OrderItemInfo[];
   status?: OrderResponseStatus;
   merchantId?: string;
   storeName?: string;

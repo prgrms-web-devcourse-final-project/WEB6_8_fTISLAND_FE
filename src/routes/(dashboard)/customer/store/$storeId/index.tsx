@@ -94,13 +94,6 @@ function RouteComponent() {
               <h2 className='text-[18px] font-extrabold text-[#1b1b1b]'>상점 정보</h2>
               <p className='text-[12px] text-white/80'></p>
             </div>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={() => setFavorite((v) => !v)}
-              className={`h-9 rounded-full border ${favorite ? 'border-[#f43f5e] bg-[#fee2e2] text-[#b91c1c]' : 'border-[#dbe4ec] text-[#1b1b1b] hover:bg-[#f5f7f9]'}`}>
-              <Heart className={`mr-1 size-4 ${favorite ? 'fill-[#f43f5e] text-[#f43f5e]' : ''}`} /> 즐겨찾기
-            </Button>
           </div>
 
           <div className='mt-3 grid grid-cols-3 gap-2 text-center text-[12px] text-[#1b1b1b]'>

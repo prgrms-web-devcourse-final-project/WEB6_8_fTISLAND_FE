@@ -15,6 +15,7 @@ function RouteComponent() {
   const { storeId, productId } = Route.useParams();
   const [qty, setQty] = React.useState(1);
   const [open, setOpen] = React.useState(false);
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
   const numericStoreId = Number(storeId);
   const numericProductId = Number(productId);
   const productQuery = useGetProduct(numericStoreId, numericProductId, {
@@ -23,6 +24,56 @@ function RouteComponent() {
   const product = (productQuery.data as any)?.data?.content ?? undefined;
   const unitPrice = Number(product?.price ?? 0);
   const totalPrice = unitPrice * qty;
+
+  type CartItem = {
+    storeId: number;
+    productId: number;
+    name: string;
+    price: number;
+    imageUrl?: string;
+    qty: number;
+  };
+
+  const readCart = (): CartItem[] => {
+    try {
+      const raw = sessionStorage.getItem('cart');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const writeCart = (items: CartItem[]) => {
+    try {
+      sessionStorage.setItem('cart', JSON.stringify(items));
+    } catch {}
+  };
+
+  const addToCart = () => {
+    const current: CartItem = {
+      storeId: numericStoreId,
+      productId: numericProductId,
+      name: product?.name ?? `상품 ${productId}`,
+      price: unitPrice,
+      imageUrl: product?.imageUrl,
+      qty,
+    };
+    const cart = readCart();
+    if (cart.length > 0 && cart[0].storeId !== numericStoreId) {
+      setConfirmOpen(true);
+      return;
+    }
+    const existingIdx = cart.findIndex((c) => c.productId === current.productId && c.storeId === current.storeId);
+    if (existingIdx >= 0) {
+      cart[existingIdx].qty += qty;
+    } else {
+      cart.push(current);
+    }
+    writeCart(cart);
+    setOpen(true);
+  };
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
@@ -93,11 +144,50 @@ function RouteComponent() {
           <div className='text-[13px]'>수량 {qty}개</div>
           <Button
             className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'
-            onClick={() => setOpen(true)}>
+            onClick={addToCart}>
             배달 카트에 담기
           </Button>
         </div>
       </footer>
+
+      {/* 다른 상점 카트 경고 */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className='mx-auto w-[90%] max-w-[420px] rounded-2xl border-0 p-0 shadow-2xl'>
+          <DialogHeader className='px-5 pb-2 pt-4'>
+            <DialogTitle className='text-[15px] font-semibold text-[#1b1b1b]'>
+              다른 상점 상품이 담겨 있습니다
+            </DialogTitle>
+          </DialogHeader>
+          <div className='space-y-3 px-5 pb-4 text-[13px] text-[#1b1b1b]'>
+            카트에는 하나의 상점 상품만 담을 수 있습니다. 새로 담으시겠습니까?
+          </div>
+          <DialogFooter className='flex flex-row items-center justify-between gap-3 border-t border-[#eef2f6] px-5 py-4'>
+            <Button
+              variant='outline'
+              className='h-10 flex-1 rounded-full border-[#dbe4ec] text-[13px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'
+              onClick={() => setConfirmOpen(false)}>
+              아니오
+            </Button>
+            <Button
+              className='h-10 flex-1 rounded-full bg-[#2ac1bc] text-[13px] font-semibold text-white hover:bg-[#1ba7a1]'
+              onClick={() => {
+                const current: CartItem = {
+                  storeId: numericStoreId,
+                  productId: numericProductId,
+                  name: product?.name ?? `상품 ${productId}`,
+                  price: unitPrice,
+                  imageUrl: product?.imageUrl,
+                  qty,
+                };
+                writeCart([current]);
+                setConfirmOpen(false);
+                setOpen(true);
+              }}>
+              예, 새로 담기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className='mx-auto w-[90%] max-w-[420px] rounded-2xl border-0 p-0 shadow-2xl'>
@@ -115,7 +205,7 @@ function RouteComponent() {
               variant='outline'
               className='h-10 w-full rounded-full border-[#dbe4ec] text-[13px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'
               onClick={() => navigate({ to: '/customer/store/$storeId', params: { storeId } })}>
-              판매자 상세 페이지로 돌아가기
+              상점 페이지로 이동하기
             </Button>
           </div>
           <DialogFooter className='flex flex-row items-center justify-between gap-3 border-t border-[#eef2f6] px-5 py-4'>

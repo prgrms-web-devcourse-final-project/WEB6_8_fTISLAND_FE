@@ -59,7 +59,6 @@ import type {
   ApiResponseSellerProfileResponse,
   ApiResponseSettlementResponse,
   ApiResponseSignupResponse,
-  ApiResponseStockResponse,
   ApiResponseStoreResponse,
   ApiResponseString,
   ApiResponseSummaryResponse,
@@ -74,6 +73,7 @@ import type {
   DeliveryAreaRequestDto,
   GeneratePresignedUrlRequest,
   GetAllParams,
+  GetCompletedOrdersParams,
   GetMyReviewsParams,
   GetNotificationsParams,
   GetOrdersHistoryParams,
@@ -103,7 +103,6 @@ import type {
   SellerProfileUpdateRequest,
   SignupRequest,
   SseEmitter,
-  StockUpdateRequest,
   StoreCreateRequest,
   StoreUpdateRequest,
   SubscribeParams,
@@ -2616,276 +2615,6 @@ export const useDeleteProduct = <TError = unknown, TContext = unknown>(
   TContext
 > => {
   const mutationOptions = getDeleteProductMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-
-/**
- * 특정 상품의 재고 정보를 조회합니다.
- * @summary 상품 재고 조회
- */
-export const getProductStock = (storeId: number, productId: number, signal?: AbortSignal) => {
-  return customInstance<ApiResponseStockResponse>({
-    url: `/api/v1/stores/${storeId}/products/${productId}/stock`,
-    method: 'GET',
-    signal,
-  });
-};
-
-export const getGetProductStockInfiniteQueryKey = (storeId?: number, productId?: number) => {
-  return ['infinate', `/api/v1/stores/${storeId}/products/${productId}/stock`] as const;
-};
-
-export const getGetProductStockQueryKey = (storeId?: number, productId?: number) => {
-  return [`/api/v1/stores/${storeId}/products/${productId}/stock`] as const;
-};
-
-export const getGetProductStockInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof getProductStock>>>,
-  TError = unknown,
->(
-  storeId: number,
-  productId: number,
-  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> }
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetProductStockInfiniteQueryKey(storeId, productId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProductStock>>> = ({ signal }) =>
-    getProductStock(storeId, productId, signal);
-
-  return { queryKey, queryFn, enabled: !!(storeId && productId), ...queryOptions } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof getProductStock>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetProductStockInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getProductStock>>>;
-export type GetProductStockInfiniteQueryError = unknown;
-
-export function useGetProductStockInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getProductStock>>>,
-  TError = unknown,
->(
-  storeId: number,
-  productId: number,
-  options: {
-    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductStock>>,
-          TError,
-          Awaited<ReturnType<typeof getProductStock>>
-        >,
-        'initialData'
-      >;
-  },
-  queryClient?: QueryClient
-): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetProductStockInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getProductStock>>>,
-  TError = unknown,
->(
-  storeId: number,
-  productId: number,
-  options?: {
-    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductStock>>,
-          TError,
-          Awaited<ReturnType<typeof getProductStock>>
-        >,
-        'initialData'
-      >;
-  },
-  queryClient?: QueryClient
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetProductStockInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getProductStock>>>,
-  TError = unknown,
->(
-  storeId: number,
-  productId: number,
-  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> },
-  queryClient?: QueryClient
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-/**
- * @summary 상품 재고 조회
- */
-
-export function useGetProductStockInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getProductStock>>>,
-  TError = unknown,
->(
-  storeId: number,
-  productId: number,
-  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> },
-  queryClient?: QueryClient
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetProductStockInfiniteQueryOptions(storeId, productId, options);
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
-
-export const getGetProductStockQueryOptions = <TData = Awaited<ReturnType<typeof getProductStock>>, TError = unknown>(
-  storeId: number,
-  productId: number,
-  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> }
-) => {
-  const { query: queryOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetProductStockQueryKey(storeId, productId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProductStock>>> = ({ signal }) =>
-    getProductStock(storeId, productId, signal);
-
-  return { queryKey, queryFn, enabled: !!(storeId && productId), ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getProductStock>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetProductStockQueryResult = NonNullable<Awaited<ReturnType<typeof getProductStock>>>;
-export type GetProductStockQueryError = unknown;
-
-export function useGetProductStock<TData = Awaited<ReturnType<typeof getProductStock>>, TError = unknown>(
-  storeId: number,
-  productId: number,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductStock>>,
-          TError,
-          Awaited<ReturnType<typeof getProductStock>>
-        >,
-        'initialData'
-      >;
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetProductStock<TData = Awaited<ReturnType<typeof getProductStock>>, TError = unknown>(
-  storeId: number,
-  productId: number,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductStock>>,
-          TError,
-          Awaited<ReturnType<typeof getProductStock>>
-        >,
-        'initialData'
-      >;
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetProductStock<TData = Awaited<ReturnType<typeof getProductStock>>, TError = unknown>(
-  storeId: number,
-  productId: number,
-  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-/**
- * @summary 상품 재고 조회
- */
-
-export function useGetProductStock<TData = Awaited<ReturnType<typeof getProductStock>>, TError = unknown>(
-  storeId: number,
-  productId: number,
-  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductStock>>, TError, TData>> },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetProductStockQueryOptions(storeId, productId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
-
-/**
- * 특정 상품의 재고를 수정합니다.
- * @summary 상품 재고 수정
- */
-export const updateProductStock = (storeId: number, productId: number, stockUpdateRequest: StockUpdateRequest) => {
-  return customInstance<ApiResponseStockResponse>({
-    url: `/api/v1/stores/${storeId}/products/${productId}/stock`,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    data: stockUpdateRequest,
-  });
-};
-
-export const getUpdateProductStockMutationOptions = <TError = unknown, TContext = unknown>(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateProductStock>>,
-    TError,
-    { storeId: number; productId: number; data: StockUpdateRequest },
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateProductStock>>,
-  TError,
-  { storeId: number; productId: number; data: StockUpdateRequest },
-  TContext
-> => {
-  const mutationKey = ['updateProductStock'];
-  const { mutation: mutationOptions } = options
-    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateProductStock>>,
-    { storeId: number; productId: number; data: StockUpdateRequest }
-  > = (props) => {
-    const { storeId, productId, data } = props ?? {};
-
-    return updateProductStock(storeId, productId, data);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateProductStockMutationResult = NonNullable<Awaited<ReturnType<typeof updateProductStock>>>;
-export type UpdateProductStockMutationBody = StockUpdateRequest;
-export type UpdateProductStockMutationError = unknown;
-
-/**
- * @summary 상품 재고 수정
- */
-export const useUpdateProductStock = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateProductStock>>,
-      TError,
-      { storeId: number; productId: number; data: StockUpdateRequest },
-      TContext
-    >;
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateProductStock>>,
-  TError,
-  { storeId: number; productId: number; data: StockUpdateRequest },
-  TContext
-> => {
-  const mutationOptions = getUpdateProductStockMutationOptions(options);
 
   return useMutation(mutationOptions, queryClient);
 };
@@ -7558,6 +7287,10 @@ export function useGetCategories<TData = Awaited<ReturnType<typeof getCategories
   return query;
 }
 
+/**
+ * 상점 검색 결과를 커서 기반 페이지네이션으로 조회합니다.
+ * @summary 상점 검색
+ */
 export const searchStores = (params: SearchStoresParams, signal?: AbortSignal) => {
   return customInstance<ApiResponseCursorPageResponseStoreSearchResponse>({
     url: `/api/v1/search/stores`,
@@ -7642,6 +7375,9 @@ export function useSearchStoresInfinite<
   options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof searchStores>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 상점 검색
+ */
 
 export function useSearchStoresInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof searchStores>>>,
@@ -7717,6 +7453,9 @@ export function useSearchStores<TData = Awaited<ReturnType<typeof searchStores>>
   options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof searchStores>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 상점 검색
+ */
 
 export function useSearchStores<TData = Awaited<ReturnType<typeof searchStores>>, TError = unknown>(
   params: SearchStoresParams,
@@ -10456,6 +10195,381 @@ export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetQueryOptions(orderId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 소비자가 진행중인 주문 내역을 요청한 경우
+ * @summary 진행중인 주문 조회
+ */
+export const getInProgressOrders = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseListOrderResponse>({
+    url: `/api/v1/customer/orders/in-progress`,
+    method: 'GET',
+    signal,
+  });
+};
+
+export const getGetInProgressOrdersInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/customer/orders/in-progress`] as const;
+};
+
+export const getGetInProgressOrdersQueryKey = () => {
+  return [`/api/v1/customer/orders/in-progress`] as const;
+};
+
+export const getGetInProgressOrdersInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getInProgressOrders>>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetInProgressOrdersInfiniteQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getInProgressOrders>>> = ({ signal }) =>
+    getInProgressOrders(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getInProgressOrders>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetInProgressOrdersInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getInProgressOrders>>>;
+export type GetInProgressOrdersInfiniteQueryError = unknown;
+
+export function useGetInProgressOrdersInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getInProgressOrders>>>,
+  TError = unknown,
+>(
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInProgressOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getInProgressOrders>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInProgressOrdersInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getInProgressOrders>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInProgressOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getInProgressOrders>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInProgressOrdersInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getInProgressOrders>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>>;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 진행중인 주문 조회
+ */
+
+export function useGetInProgressOrdersInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getInProgressOrders>>>,
+  TError = unknown,
+>(
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>>;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetInProgressOrdersInfiniteQueryOptions(options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetInProgressOrdersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getInProgressOrders>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>>;
+}) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetInProgressOrdersQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getInProgressOrders>>> = ({ signal }) =>
+    getInProgressOrders(signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getInProgressOrders>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetInProgressOrdersQueryResult = NonNullable<Awaited<ReturnType<typeof getInProgressOrders>>>;
+export type GetInProgressOrdersQueryError = unknown;
+
+export function useGetInProgressOrders<TData = Awaited<ReturnType<typeof getInProgressOrders>>, TError = unknown>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInProgressOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getInProgressOrders>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInProgressOrders<TData = Awaited<ReturnType<typeof getInProgressOrders>>, TError = unknown>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getInProgressOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getInProgressOrders>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInProgressOrders<TData = Awaited<ReturnType<typeof getInProgressOrders>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 진행중인 주문 조회
+ */
+
+export function useGetInProgressOrders<TData = Awaited<ReturnType<typeof getInProgressOrders>>, TError = unknown>(
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getInProgressOrders>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetInProgressOrdersQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
+ * 소비자가 배달 완료된 주문 내역을 요청한 경우
+ * @summary 배달 완료된 주문 조회
+ */
+export const getCompletedOrders = (params?: GetCompletedOrdersParams, signal?: AbortSignal) => {
+  return customInstance<ApiResponseCursorPageResponseOrderResponse>({
+    url: `/api/v1/customer/orders/completed`,
+    method: 'GET',
+    params,
+    signal,
+  });
+};
+
+export const getGetCompletedOrdersInfiniteQueryKey = (params?: GetCompletedOrdersParams) => {
+  return ['infinate', `/api/v1/customer/orders/completed`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCompletedOrdersQueryKey = (params?: GetCompletedOrdersParams) => {
+  return [`/api/v1/customer/orders/completed`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCompletedOrdersInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getCompletedOrders>>>,
+  TError = unknown,
+>(
+  params?: GetCompletedOrdersParams,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCompletedOrdersInfiniteQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCompletedOrders>>> = ({ signal }) =>
+    getCompletedOrders(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getCompletedOrders>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetCompletedOrdersInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getCompletedOrders>>>;
+export type GetCompletedOrdersInfiniteQueryError = unknown;
+
+export function useGetCompletedOrdersInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getCompletedOrders>>>,
+  TError = unknown,
+>(
+  params: undefined | GetCompletedOrdersParams,
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCompletedOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getCompletedOrders>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetCompletedOrdersInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getCompletedOrders>>>,
+  TError = unknown,
+>(
+  params?: GetCompletedOrdersParams,
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCompletedOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getCompletedOrders>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetCompletedOrdersInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getCompletedOrders>>>,
+  TError = unknown,
+>(
+  params?: GetCompletedOrdersParams,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 배달 완료된 주문 조회
+ */
+
+export function useGetCompletedOrdersInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getCompletedOrders>>>,
+  TError = unknown,
+>(
+  params?: GetCompletedOrdersParams,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetCompletedOrdersInfiniteQueryOptions(params, options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetCompletedOrdersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCompletedOrders>>,
+  TError = unknown,
+>(
+  params?: GetCompletedOrdersParams,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCompletedOrdersQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCompletedOrders>>> = ({ signal }) =>
+    getCompletedOrders(params, signal);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCompletedOrders>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetCompletedOrdersQueryResult = NonNullable<Awaited<ReturnType<typeof getCompletedOrders>>>;
+export type GetCompletedOrdersQueryError = unknown;
+
+export function useGetCompletedOrders<TData = Awaited<ReturnType<typeof getCompletedOrders>>, TError = unknown>(
+  params: undefined | GetCompletedOrdersParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCompletedOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getCompletedOrders>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetCompletedOrders<TData = Awaited<ReturnType<typeof getCompletedOrders>>, TError = unknown>(
+  params?: GetCompletedOrdersParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCompletedOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getCompletedOrders>>
+        >,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetCompletedOrders<TData = Awaited<ReturnType<typeof getCompletedOrders>>, TError = unknown>(
+  params?: GetCompletedOrdersParams,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 배달 완료된 주문 조회
+ */
+
+export function useGetCompletedOrders<TData = Awaited<ReturnType<typeof getCompletedOrders>>, TError = unknown>(
+  params?: GetCompletedOrdersParams,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getCompletedOrders>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetCompletedOrdersQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

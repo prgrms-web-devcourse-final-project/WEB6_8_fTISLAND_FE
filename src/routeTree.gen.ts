@@ -16,6 +16,8 @@ import { Route as SignupIndexRouteImport } from './routes/signup/index'
 import { Route as ManageAddressIndexRouteImport } from './routes/manage-address/index'
 import { Route as MakeProfileIndexRouteImport } from './routes/make-profile/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
+import { Route as PaymentSuccessRouteImport } from './routes/payment/success'
+import { Route as PaymentFailRouteImport } from './routes/payment/fail'
 import { Route as MakeProfileSellerIndexRouteImport } from './routes/make-profile/seller/index'
 import { Route as MakeProfileRiderIndexRouteImport } from './routes/make-profile/rider/index'
 import { Route as MakeProfileCustomerIndexRouteImport } from './routes/make-profile/customer/index'
@@ -86,6 +88,16 @@ const MakeProfileIndexRoute = MakeProfileIndexRouteImport.update({
 const LoginIndexRoute = LoginIndexRouteImport.update({
   id: '/login/',
   path: '/login/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentSuccessRoute = PaymentSuccessRouteImport.update({
+  id: '/payment/success',
+  path: '/payment/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentFailRoute = PaymentFailRouteImport.update({
+  id: '/payment/fail',
+  path: '/payment/fail',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MakeProfileSellerIndexRoute = MakeProfileSellerIndexRouteImport.update({
@@ -242,6 +254,8 @@ const dashboardCustomerStoreStoreIdProductProductIdIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/payment/fail': typeof PaymentFailRoute
+  '/payment/success': typeof PaymentSuccessRoute
   '/login': typeof LoginIndexRoute
   '/make-profile': typeof MakeProfileIndexRoute
   '/manage-address': typeof ManageAddressIndexRoute
@@ -276,6 +290,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/payment/fail': typeof PaymentFailRoute
+  '/payment/success': typeof PaymentSuccessRoute
   '/login': typeof LoginIndexRoute
   '/make-profile': typeof MakeProfileIndexRoute
   '/manage-address': typeof ManageAddressIndexRoute
@@ -308,6 +324,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/payment/fail': typeof PaymentFailRoute
+  '/payment/success': typeof PaymentSuccessRoute
   '/login/': typeof LoginIndexRoute
   '/make-profile/': typeof MakeProfileIndexRoute
   '/manage-address/': typeof ManageAddressIndexRoute
@@ -347,6 +365,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/payment/fail'
+    | '/payment/success'
     | '/login'
     | '/make-profile'
     | '/manage-address'
@@ -381,6 +401,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/payment/fail'
+    | '/payment/success'
     | '/login'
     | '/make-profile'
     | '/manage-address'
@@ -412,6 +434,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/payment/fail'
+    | '/payment/success'
     | '/login/'
     | '/make-profile/'
     | '/manage-address/'
@@ -450,6 +474,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PaymentFailRoute: typeof PaymentFailRoute
+  PaymentSuccessRoute: typeof PaymentSuccessRoute
   LoginIndexRoute: typeof LoginIndexRoute
   MakeProfileIndexRoute: typeof MakeProfileIndexRoute
   ManageAddressIndexRoute: typeof ManageAddressIndexRoute
@@ -518,6 +544,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/success': {
+      id: '/payment/success'
+      path: '/payment/success'
+      fullPath: '/payment/success'
+      preLoaderRoute: typeof PaymentSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/fail': {
+      id: '/payment/fail'
+      path: '/payment/fail'
+      fullPath: '/payment/fail'
+      preLoaderRoute: typeof PaymentFailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/make-profile/seller/': {
@@ -797,6 +837,8 @@ const dashboardSellerRouteWithChildren = dashboardSellerRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PaymentFailRoute: PaymentFailRoute,
+  PaymentSuccessRoute: PaymentSuccessRoute,
   LoginIndexRoute: LoginIndexRoute,
   MakeProfileIndexRoute: MakeProfileIndexRoute,
   ManageAddressIndexRoute: ManageAddressIndexRoute,

@@ -12,6 +12,8 @@ import {
   useGetDeliveryArea,
   useGetInProgressDeliveryInfinite,
   useGetTodayDeliveries,
+  useSubscribe,
+  useDecideOrderDelivery,
 } from '@/api/generated';
 import { toast } from 'sonner';
 import { useGetMyProfile1 } from '@/api/generated';
@@ -99,32 +101,7 @@ function RouteComponent() {
     } as { orderId: string; store: string; address: string; remainingMinutes: number };
   }, [inProgressItems]);
 
-  const [offers, setOffers] = React.useState<Offer[]>([
-    {
-      id: 'REQ-1',
-      store: '꽃집 토도',
-      distanceKm: 1.2,
-      fee: 3800,
-      etaMinutes: 12,
-      createdAt: Date.now() - 1000 * 60 * 2,
-    },
-    {
-      id: 'REQ-2',
-      store: '동네 베이커리',
-      distanceKm: 0.6,
-      fee: 3200,
-      etaMinutes: 9,
-      createdAt: Date.now() - 1000 * 60 * 5,
-    },
-    {
-      id: 'REQ-3',
-      store: '약국 굿헬스',
-      distanceKm: 2.0,
-      fee: 4200,
-      etaMinutes: 16,
-      createdAt: Date.now() - 1000 * 60 * 1,
-    },
-  ]);
+  const [offers, setOffers] = React.useState<Offer[]>([]);
 
   const sortedOffers = React.useMemo(() => {
     const arr = [...offers];
@@ -134,12 +111,83 @@ function RouteComponent() {
     return arr;
   }, [offers, sortBy]);
 
-  const acceptOffer = (id: string) => {
+  const decideMutation = useDecideOrderDelivery({
+    mutation: {
+      onSuccess: () => {
+        toast.success('처리되었습니다.');
+      },
+      onError: () => {
+        toast.error('요청 처리에 실패했어요. 잠시 후 다시 시도해 주세요.');
+      },
+    },
+  } as any);
+
+  const acceptOffer = (id: string, etaMinutes: number) => {
+    decideMutation.mutate({ data: { orderId: id, decisionStatus: 'RIDER_ASSIGNED', etaMinutes } } as any);
     setOffers((prev) => prev.filter((o) => o.id !== id));
   };
   const declineOffer = (id: string) => {
+    decideMutation.mutate({ data: { orderId: id, decisionStatus: 'REJECTED', etaMinutes: 0 } } as any);
     setOffers((prev) => prev.filter((o) => o.id !== id));
   };
+
+  // SSE 구독: 주변 배달 요청 실시간 반영
+  useSubscribe(
+    { profileId: Number((riderProfile as any)?.profileId ?? 0) } as any,
+    {
+      query: {
+        enabled: Boolean((riderProfile as any)?.profileId),
+        refetchOnWindowFocus: false,
+        staleTime: Infinity,
+        select: (res: any) => res,
+        onSuccess: (res: any) => {
+          try {
+            const msg = (res?.data?.content ?? res)?.message as string | undefined;
+            const payload = (res?.data?.content ?? res)?.payload as any;
+            if (!msg) return;
+            // 메시지 분기 (이미지의 열거형 참고)
+            if (msg === 'RIDER_ACCEPTED_ORDER') {
+              // 예시 Payload (RiderNotificationDto)
+              // {
+              //   orderDetailsDto: { orderId, storeName, distance, expectedCharge },
+              //   riderId, etaMinutes, orderDeliveryStatus
+              // }
+              const od = payload?.orderDetailsDto ?? {};
+              const id = String(od?.orderId ?? payload?.orderId ?? '');
+              if (!id) return;
+              const store = String(od?.storeName ?? '상점');
+              const distanceKm = Number(od?.distance ?? 0);
+              const fee = Number(od?.expectedCharge ?? od?.expectedFee ?? 0);
+              const etaMinutes = Number(payload?.etaMinutes ?? 0);
+              const createdAt = Date.now();
+              setOffers((prev) => {
+                // 이미 존재하면 최신 정보로 갱신
+                const next = prev.filter((o) => o.id !== id);
+                next.unshift({ id, store, distanceKm, fee, etaMinutes, createdAt });
+                return next.slice(0, 100);
+              });
+            }
+            if (msg === 'RIDER_DECISION') {
+              // 라이더가 수락/거절을 확정하면 해당 요청 제거
+              const id = String(payload?.requestId ?? payload?.orderId ?? payload?.id ?? '');
+              if (!id) return;
+              setOffers((prev) => prev.filter((o) => o.id !== id));
+            }
+            if (
+              msg === 'ORDER_CANCELED_CUSTOMER' ||
+              msg === 'ORDER_CANCELED_SELLER' ||
+              msg === 'ORDER_CANCEL_FAILED_CUSTOMER' ||
+              msg === 'ORDER_CANCEL_FAILED_SELLER'
+            ) {
+              const id = String(payload?.requestId ?? payload?.orderId ?? payload?.id ?? '');
+              if (!id) return;
+              setOffers((prev) => prev.filter((o) => o.id !== id));
+            }
+          } catch {}
+        },
+      },
+    } as any
+  );
 
   // 오늘의 배달 내역 요약
   const todayQuery = useGetTodayDeliveries({
@@ -337,7 +385,7 @@ function RouteComponent() {
                     </Button>
                     <Button
                       className='h-8 rounded-full bg-[#2ac1bc] px-3 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'
-                      onClick={() => acceptOffer(o.id)}>
+                      onClick={() => acceptOffer(o.id, o.etaMinutes)}>
                       수락
                     </Button>
                   </div>

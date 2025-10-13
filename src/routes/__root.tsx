@@ -15,7 +15,6 @@ function RootComponent() {
   const items = [
     { label: '홈', to: '/customer', icon: Home },
     { label: '검색', to: '/customer/search', icon: Search },
-    { label: '즐겨찾기', to: '/customer/favorites', icon: Heart },
     { label: '주문내역', to: '/customer/orders', icon: ListFilter },
     { label: '마이뭐든', to: '/customer/mypage', icon: User },
   ];

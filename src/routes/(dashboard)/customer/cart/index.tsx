@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { useGetMyProfile2, useGetAddress } from '@/api/generated';
+import { useGetMyProfile2, useGetAddress, useCreate } from '@/api/generated';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/(dashboard)/customer/cart/')({
   component: RouteComponent,
 });
 
-type CartItem = { id: string; name: string; price: number; qty: number };
+type CartItem = { storeId: number; productId: number; name: string; price: number; imageUrl?: string; qty: number };
 
 function RouteComponent() {
   const [addressOpen, setAddressOpen] = React.useState(false);
@@ -36,15 +37,33 @@ function RouteComponent() {
   const boundAddress = (addressQuery.data as any)?.data?.content as
     | { address?: string; detail?: string; unitNumber?: string }
     | undefined;
+  const addressLat = (addressQuery.data as any)?.data?.content?.latitude as number | undefined;
+  const addressLng = (addressQuery.data as any)?.data?.content?.longitude as number | undefined;
   React.useEffect(() => {
     if (boundAddress?.address) {
       setAddress({ base: boundAddress.address, detail: boundAddress.unitNumber || '' });
     }
   }, [boundAddress?.address, boundAddress?.unitNumber]);
-  const [items, setItems] = React.useState<CartItem[]>([
-    { id: 'p1', name: '상품 1', price: 9900, qty: 1 },
-    { id: 'p2', name: '상품 2', price: 12900, qty: 2 },
-  ]);
+
+  const [items, setItems] = React.useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('cart');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setItems(parsed);
+      }
+    } catch {}
+    setHydrated(true);
+  }, []);
+  React.useEffect(() => {
+    if (!hydrated) return;
+    try {
+      sessionStorage.setItem('cart', JSON.stringify(items));
+    } catch {}
+  }, [items, hydrated]);
+
   const [deleteTarget, setDeleteTarget] = React.useState<CartItem | null>(null);
   const [riderNote, setRiderNote] = React.useState('');
   const [storeNote, setStoreNote] = React.useState('');
@@ -55,25 +74,25 @@ function RouteComponent() {
   const minOrderAmount = 15000;
   const deficit = Math.max(0, minOrderAmount - orderAmount);
 
-  const decreaseQty = (id: string) => {
+  const decreaseQty = (productId: number) => {
     setItems((prev) => {
-      const target = prev.find((i) => i.id === id);
+      const target = prev.find((i) => i.productId === productId);
       if (!target) return prev;
       if (target.qty <= 1) {
         setDeleteTarget(target);
         return prev;
       }
-      return prev.map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i));
+      return prev.map((i) => (i.productId === productId ? { ...i, qty: i.qty - 1 } : i));
     });
   };
 
-  const increaseQty = (id: string) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)));
+  const increaseQty = (productId: number) => {
+    setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, qty: i.qty + 1 } : i)));
   };
 
   const confirmDelete = () => {
     if (!deleteTarget) return;
-    setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
+    setItems((prev) => prev.filter((i) => i.productId !== deleteTarget.productId));
     setDeleteTarget(null);
   };
 
@@ -117,29 +136,37 @@ function RouteComponent() {
           <CardContent className='space-y-3 px-4 py-4 sm:px-5'>
             <p className='text-[13px] font-semibold text-[#1b1b1b]'>주문 할 상품 내역</p>
             <div className='space-y-2'>
-              {items.map((it) => (
-                <div key={it.id} className='flex items-center justify-between rounded-xl bg-[#f5f7f9] px-3 py-2'>
-                  <div>
-                    <p className='text-[13px] font-semibold text-[#1b1b1b]'>{it.name}</p>
-                    <p className='text-[12px] text-[#6b7785]'>₩ {it.price.toLocaleString()}</p>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Button
-                      variant='outline'
-                      className='h-8 w-8 rounded-full border-[#dbe4ec] p-0 text-[#1b1b1b]'
-                      onClick={() => decreaseQty(it.id)}>
-                      <Minus className='size-4' />
-                    </Button>
-                    <span className='w-6 text-center text-[13px] font-semibold text-[#1b1b1b]'>{it.qty}</span>
-                    <Button
-                      variant='outline'
-                      className='h-8 w-8 rounded-full border-[#dbe4ec] p-0 text-[#1b1b1b]'
-                      onClick={() => increaseQty(it.id)}>
-                      <Plus className='size-4' />
-                    </Button>
-                  </div>
+              {items.length === 0 ? (
+                <div className='rounded-xl bg-[#f5f7f9] px-3 py-6 text-center text-[13px] text-[#6b7785]'>
+                  카트가 비어 있습니다.
                 </div>
-              ))}
+              ) : (
+                items.map((it) => (
+                  <div
+                    key={it.productId}
+                    className='flex items-center justify-between rounded-xl bg-[#f5f7f9] px-3 py-2'>
+                    <div>
+                      <p className='text-[13px] font-semibold text-[#1b1b1b]'>{it.name}</p>
+                      <p className='text-[12px] text-[#6b7785]'>₩ {it.price.toLocaleString()}</p>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <Button
+                        variant='outline'
+                        className='h-8 w-8 rounded-full border-[#dbe4ec] p-0 text-[#1b1b1b]'
+                        onClick={() => decreaseQty(it.productId)}>
+                        <Minus className='size-4' />
+                      </Button>
+                      <span className='w-6 text-center text-[13px] font-semibold text-[#1b1b1b]'>{it.qty}</span>
+                      <Button
+                        variant='outline'
+                        className='h-8 w-8 rounded-full border-[#dbe4ec] p-0 text-[#1b1b1b]'
+                        onClick={() => increaseQty(it.productId)}>
+                        <Plus className='size-4' />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -188,12 +215,22 @@ function RouteComponent() {
       <footer className='sticky bottom-0 z-10 border-t border-white/20 bg-[#2ac1bc] px-4 py-4 text-white sm:px-6'>
         <div className='flex items-center justify-between gap-3'>
           <div className='text-[12px]'>
-            총 주문금액 ₩ {orderAmount.toLocaleString()} / 최소주문 ₩ {minOrderAmount.toLocaleString()}
+            총 주문금액 ₩ {(orderAmount + deliveryFee).toLocaleString()}
             {deficit > 0 ? <span className='ml-2 text-[#FFE08A]'>({deficit.toLocaleString()}원 부족)</span> : null}
           </div>
-          <Button className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'>
-            가게배달 주문하기
-          </Button>
+          <OrderButton
+            items={items}
+            amount={totalAmount}
+            nickname={profile?.nickname ?? profile?.user?.username}
+            // customerId={profile?.profileId as number | undefined}
+            address={[address.base, address.detail].filter(Boolean).join(' ').trim()}
+            lat={addressLat}
+            lng={addressLng}
+            deliveryFee={deliveryFee}
+            storePrice={orderAmount}
+            riderNote={riderNote}
+            storeNote={storeNote}
+          />
         </div>
       </footer>
 
@@ -226,5 +263,128 @@ function RouteComponent() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function OrderButton({
+  items,
+  amount,
+  nickname,
+  customerId,
+  address,
+  lat,
+  lng,
+  deliveryFee,
+  storePrice,
+  riderNote,
+  storeNote,
+}: {
+  items: CartItem[];
+  amount: number;
+  nickname?: string;
+  customerId?: number;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  deliveryFee: number;
+  storePrice: number;
+  riderNote?: string;
+  storeNote?: string;
+}) {
+  const createOrder = useCreate();
+  const [loading, setLoading] = React.useState(false);
+
+  const handleClick = async () => {
+    if (!items.length) return;
+    try {
+      setLoading(true);
+      // 유효성 검사
+      if (!address || lat == null || lng == null) {
+        toast.error('배송지를 확인해 주세요.');
+        return;
+      }
+
+      const baseStoreId = items[0]?.storeId;
+      if (baseStoreId == null) {
+        toast.error('가게 정보가 올바르지 않습니다.');
+        return;
+      }
+      const hasMixedStore = items.some((i) => i.storeId !== baseStoreId);
+      if (hasMixedStore) {
+        toast.error('서로 다른 가게의 상품은 함께 주문할 수 없습니다.');
+        return;
+      }
+
+      // 1) 서버에 주문 생성 (요청 바디 전체 구성)
+      const orderReq = {
+        storeId: baseStoreId,
+        orderItemRequests: items.map((it) => ({ productId: it.productId, price: it.price, quantity: it.qty })),
+        ...(customerId != null ? { customerId } : {}),
+        address,
+        lat,
+        lng,
+        riderNote: riderNote?.trim() || undefined,
+        storeNote: storeNote?.trim() || undefined,
+        totalPrice: storePrice + deliveryFee,
+        storePrice,
+        deliveryPrice: deliveryFee,
+      };
+
+      const createRes = await createOrder.mutateAsync({ data: orderReq } as any);
+      toast.success('주문이 생성되었습니다. 결제를 진행해 주세요.');
+      const content = (createRes as any)?.data?.content ?? (createRes as any)?.content;
+      const merchantUid: string = content?.merchantUid ?? content?.orderId ?? `ORD-${Date.now()}`;
+
+      // 2) 토스 결제창 오픈 (테스트 환경)
+      const clientKey = (import.meta as any)?.env?.VITE_TOSS_KEY as string;
+      if (!clientKey) {
+        toast.error('결제 키가 설정되지 않았습니다.');
+        return;
+      }
+      // 동적 로드
+      await new Promise<void>((resolve, reject) => {
+        const prev = document.getElementById('toss-payments-sdk');
+        if (prev) return resolve();
+        const s = document.createElement('script');
+        s.id = 'toss-payments-sdk';
+        s.src = 'https://js.tosspayments.com/v2/standard';
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Failed to load Toss SDK'));
+        document.body.appendChild(s);
+      });
+
+      // @ts-ignore
+      const toss = (window as any).TossPayments?.(clientKey);
+      if (!toss) {
+        toast.error('결제 모듈 초기화에 실패했습니다.');
+        return;
+      }
+
+      // 표준 결제창 실행 (테스트)
+      await toss.requestPayment('카드', {
+        amount,
+        orderId: merchantUid,
+        orderName: items[0]?.name ?? '주문',
+        customerName: nickname ?? '고객',
+        successUrl: window.location.origin + '/payment/success',
+        failUrl: window.location.origin + '/payment/fail',
+      });
+    } catch (e) {
+      console.error(e);
+      toast.error('결제 처리 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button
+      className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'
+      onClick={handleClick}
+      disabled={loading}
+      aria-busy={loading}>
+      가게배달 주문하기
+    </Button>
   );
 }

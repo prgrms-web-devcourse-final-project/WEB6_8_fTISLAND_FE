@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { Heart, Home, ListFilter, Search, ShoppingBag, Star, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import AddressManage from '@/components/address/AddressManage';
 import StoreFilterSheet, { type StoreFilterValue } from '@/components/StoreFilterSheet';
 import { http } from '@/api/core';
-import { useSearchStoresInfinite, useGetNotificationsInfinite, useMarkAsRead } from '@/api/generated';
+import { useGetNotificationsInfinite, useMarkAsRead } from '@/api/generated';
 import type { GetNotificationsParams } from '@/api/generated/model/getNotificationsParams';
 import type { StoreSearchRequest } from '@/api/generated/model/storeSearchRequest';
 import { useQueryClient } from '@tanstack/react-query';
@@ -48,9 +48,9 @@ function RouteComponent() {
   const { register, handleSubmit } = useForm<HomeSearchForm>({
     defaultValues: { keyword: '' },
   });
-
+  const [searchKeyword, setSearchKeyword] = React.useState('');
   const handleSearch = handleSubmit(({ keyword }) => {
-    console.log('search keyword', keyword);
+    setSearchKeyword(keyword.trim());
   });
 
   const [showAllCategories, setShowAllCategories] = React.useState(false);
@@ -84,18 +84,26 @@ function RouteComponent() {
   // 주변 상점 목록: 기본 주소 좌표(정수) 사용, 없으면 서울시청 좌표(정수)
   const addressLat = (addressQuery.data as any)?.data?.content?.latitude as number | undefined;
   const addressLng = (addressQuery.data as any)?.data?.content?.longitude as number | undefined;
-  const lat = Number.isFinite(addressLat) ? Math.trunc(addressLat as number) : Math.trunc(37.5665);
-  const lng = Number.isFinite(addressLng) ? Math.trunc(addressLng as number) : Math.trunc(126.978);
-  const storeReq: StoreSearchRequest = { lat, lng, distanceKm: 3, limit: 10 };
-  const storesQuery = useSearchStoresInfinite(
-    { request: storeReq } as any,
-    {
-      query: {
-        getNextPageParam: (lastPage: any) =>
-          lastPage?.data?.content?.nextPageToken ? lastPage.data.content.nextPageToken : undefined,
-      },
-    } as any
-  );
+  const lat = Number.isFinite(addressLat as any) ? (addressLat as number) : 37.5665;
+  const lng = Number.isFinite(addressLng as any) ? (addressLng as number) : 126.978;
+  const storeReq: StoreSearchRequest = { lat, lng, distanceKm: (filters as any)?.distanceKm ?? 3, limit: 10 };
+  const storesQuery = useInfiniteQuery({
+    queryKey: ['search-stores', storeReq, searchKeyword],
+    queryFn: async ({ pageParam, signal }) => {
+      const params: any = {
+        lat: storeReq.lat,
+        lng: storeReq.lng,
+        distanceKm: storeReq.distanceKm,
+        limit: storeReq.limit,
+      };
+      if (searchKeyword) params.searchText = searchKeyword;
+      if (pageParam) params.nextPageToken = pageParam;
+      return await http.get('/api/v1/search/stores', { params, signal });
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
+    refetchOnWindowFocus: false,
+  });
   const storePages = (storesQuery.data as any)?.pages ?? [];
   const stores = storePages.flatMap((p: any) => p?.data?.content?.stores ?? []);
 
@@ -164,33 +172,6 @@ function RouteComponent() {
 
       <main className='flex-1 space-y-5 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>
         <Card className='border-none bg-white shadow-sm'>
-          <CardHeader className='space-y-1'>
-            <CardTitle className='text-[15px] font-semibold text-[#1b1b1b]'>무엇을 찾고 계신가요?</CardTitle>
-            <CardDescription className='text-[12px] text-[#6b7785]'>
-              검색창에 원하는 품목이나 가게 이름을 입력해 보세요.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={handleSearch}
-              className='flex items-center gap-2 rounded-2xl border border-[#bbe7e4] bg-[#f0fffd] px-3 py-2.5'>
-              <Search className='size-[18px] text-[#2ac1bc]' aria-hidden />
-              <Input
-                placeholder='예) 골목 반찬, 꽃다발, 약국'
-                className='h-9 flex-1 border-0 bg-transparent text-[13px] text-[#1b1b1b] placeholder:text-[#9aa5b1] focus-visible:ring-0'
-                {...register('keyword')}
-              />
-              <Button
-                type='submit'
-                size='sm'
-                className='h-8 rounded-full bg-[#2ac1bc] px-4 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'>
-                검색
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card className='border-none bg-white shadow-sm'>
           <CardHeader className='flex flex-row items-center justify-between pb-3'>
             <div>
               <CardTitle className='text-[15px] font-semibold text-[#1b1b1b]'>카테고리</CardTitle>
@@ -242,6 +223,33 @@ function RouteComponent() {
                 </button>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className='border-none bg-white shadow-sm'>
+          <CardHeader className='space-y-1'>
+            <CardTitle className='text-[15px] font-semibold text-[#1b1b1b]'>무엇을 찾고 계신가요?</CardTitle>
+            <CardDescription className='text-[12px] text-[#6b7785]'>
+              검색창에 원하는 품목이나 가게 이름을 입력해 보세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={handleSearch}
+              className='flex items-center gap-2 rounded-2xl border border-[#bbe7e4] bg-[#f0fffd] px-3 py-2.5'>
+              <Search className='size-[18px] text-[#2ac1bc]' aria-hidden />
+              <Input
+                placeholder='예) 골목 반찬, 꽃다발, 약국'
+                className='h-9 flex-1 border-0 bg-transparent text-[13px] text-[#1b1b1b] placeholder:text-[#9aa5b1] focus-visible:ring-0'
+                {...register('keyword')}
+              />
+              <Button
+                type='submit'
+                size='sm'
+                className='h-8 rounded-full bg-[#2ac1bc] px-4 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'>
+                검색
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
@@ -313,10 +321,14 @@ function RouteComponent() {
             defaultOpen
             asDialog
             role='customer'
-            onSave={(v) => {
+            onSave={async (v) => {
               if (v.selectedAddress?.address) {
                 setAddress(v.selectedAddress.address);
               }
+              try {
+                await myProfileQuery.refetch();
+                await addressQuery.refetch();
+              } catch {}
             }}
             onClose={() => setAddressOpen(false)}
           />

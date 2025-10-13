@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 
-export interface CoordinateSequenceFactory {
-  [key: string]: unknown;
-}
+export type GetCompletedOrdersParams = {
+  nextPageToken?: string;
+  size?: number;
+};

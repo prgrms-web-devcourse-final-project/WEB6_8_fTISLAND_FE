@@ -23,6 +23,11 @@ export interface ProductUpdateRequest {
    */
   price?: number;
   /**
+   * @minimum 0
+   * @maximum 2147483647
+   */
+  newStockQuantity?: number;
+  /**
    * @minLength 1
    * @maxLength 256
    */
