@@ -31,8 +31,8 @@ function RouteComponent() {
             refreshToken: c.refreshToken,
           });
           toast.success('로그인에 성공했어요.');
-          // 프로필이 하나도 없으면 프로필 생성 페이지로 유도
-          if (!Array.isArray(c.availableProfiles) || c.availableProfiles.length === 0) {
+          // 프로필이 하나도 없거나 null이면 프로필 생성 페이지로 유도
+          if (!c.availableProfiles || !Array.isArray(c.availableProfiles) || c.availableProfiles.length === 0) {
             navigate({ to: '/make-profile' });
             return;
           }

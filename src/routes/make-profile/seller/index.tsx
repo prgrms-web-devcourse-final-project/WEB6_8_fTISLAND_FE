@@ -22,6 +22,7 @@ import { GeneratePresignedUrlRequestDomain } from '@/api/generated/model/generat
 import { useCreateProfile } from '@/api/generated';
 import { CreateProfileRequestProfileType } from '@/api/generated/model/createProfileRequestProfileType';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -119,7 +120,16 @@ function RouteComponent() {
 
   const createProfileMutation = useCreateProfile({
     mutation: {
-      onSuccess: () => {
+      onSuccess: (res) => {
+        const content = (res as any)?.data?.content ?? (res as any)?.content;
+        const profileId = content?.profileId ?? content?.currentActiveProfileId;
+        try {
+          useAuthStore.getState().setAuth({
+            currentActiveProfileType: 'SELLER',
+            currentActiveProfileId: profileId,
+            storeId: content?.storeId ?? content?.currentProfileDetail?.storeId,
+          });
+        } catch {}
         toast.success('판매자 프로필이 생성되었습니다.');
         navigate({ to: '/seller' });
       },

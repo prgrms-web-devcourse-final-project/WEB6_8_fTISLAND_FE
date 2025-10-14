@@ -17,5 +17,4 @@ export interface SwitchProfileResponse {
   currentProfileId?: number;
   storeId?: number;
   currentProfileDetail?: SwitchProfileResponseCurrentProfileDetail;
-  accessToken?: string;
 }

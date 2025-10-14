@@ -24,6 +24,33 @@ function getAccessToken(): string | null {
   }
 }
 
+function setAccessToken(token: string | null | undefined): void {
+  try {
+    if (typeof window === 'undefined') return;
+    if (!token) return;
+    const raw = localStorage.getItem('auth');
+    const parsed = raw ? JSON.parse(raw) : { state: {} };
+    parsed.state = { ...(parsed.state ?? {}), accessToken: token };
+    localStorage.setItem('auth', JSON.stringify(parsed));
+  } catch {
+    // ignore
+  }
+}
+
+function getRefreshToken(): string | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem('auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const state = parsed?.state ?? parsed;
+    const token = state?.refreshToken as string | undefined;
+    return token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function getDeviceId(): string {
   try {
     if (typeof window === 'undefined') return 'web';
@@ -84,12 +111,7 @@ function createApiClient(): AxiosInstance {
         const hdr = (response.headers as any)?.authorization ?? (response.headers as any)?.Authorization;
         if (hdr && typeof hdr === 'string') {
           const token = hdr.toLowerCase().startsWith('bearer ') ? hdr.slice(7) : hdr;
-          if (typeof window !== 'undefined' && token) {
-            const raw = localStorage.getItem('auth');
-            const parsed = raw ? JSON.parse(raw) : { state: {} };
-            parsed.state = { ...(parsed.state ?? {}), accessToken: token };
-            localStorage.setItem('auth', JSON.stringify(parsed));
-          }
+          setAccessToken(token);
         }
         // If server sets Set-Cookie for refresh token, withCredentials already ensures cookie persistence
       } catch {
@@ -99,6 +121,15 @@ function createApiClient(): AxiosInstance {
     },
     (error: AxiosError<any>) => {
       const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+      const reqUrl = (originalRequest?.url || '').toString();
+      const isRefreshCall = reqUrl.includes('/api/v1/auth/refresh');
+
+      // refresh 호출 자체가 401이면 즉시 종료 (무한 루프 방지)
+      if (error.response?.status === 401 && isRefreshCall) {
+        const msg = extractErrorMessage(error) || '세션이 만료되었습니다. 다시 로그인해 주세요.';
+        if (msg) toast.error(msg);
+        return Promise.reject(error);
+      }
 
       // 자동 재시도: 401 && 아직 미시도 && refresh 가능 상태
       if (error.response?.status === 401 && !originalRequest?._retry) {
@@ -109,8 +140,8 @@ function createApiClient(): AxiosInstance {
             return api.request(originalRequest);
           })
           .catch((refreshErr) => {
-            // refresh 실패 시 에러 토스트 후 전달
-            const msg = extractErrorMessage(error);
+            // refresh 실패 시 사용자에게 안내만 하고 세션은 유지(자동 로그아웃 방지)
+            const msg = extractErrorMessage(error) || '세션이 만료되었습니다. 다시 로그인해 주세요.';
             if (msg) toast.error(msg);
             return Promise.reject(refreshErr);
           });
@@ -126,16 +157,15 @@ function createApiClient(): AxiosInstance {
 }
 
 function extractErrorMessage(error: AxiosError<any>): string {
-  // 서버 응답 형태를 최대한 유연하게 처리
-  const fallback = '요청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.';
-  if (!error) return fallback;
+  // 서버/네트워크에서 의미 있는 메시지일 때만 반환하고, 그렇지 않으면 빈 문자열을 반환해 토스트를 띄우지 않습니다.
+  if (!error) return '';
 
   // 네트워크 오류
   if (error.code === 'ECONNABORTED') return '요청 시간이 초과되었습니다.';
   if (error.message === 'Network Error') return '네트워크 연결을 확인해 주세요.';
 
   const data = error.response?.data;
-  if (!data) return error.response?.status ? `${fallback} (HTTP ${error.response.status})` : fallback;
+  if (!data) return '';
 
   // 일반적인 형태: { message: string }
   if (typeof (data as any).message === 'string') return (data as any).message;
@@ -151,7 +181,7 @@ function extractErrorMessage(error: AxiosError<any>): string {
     if (first && typeof first.message === 'string') return first.message;
   }
 
-  return fallback;
+  return '';
 }
 
 export const api = createApiClient();
@@ -159,7 +189,38 @@ export const api = createApiClient();
 let refreshingPromise: Promise<unknown> | null = null;
 function triggerRefresh(): Promise<unknown> {
   if (!refreshingPromise) {
-    refreshingPromise = callRefresh({} as RefreshTokenRequest)
+    const rt = getRefreshToken();
+    if (!rt) {
+      return Promise.reject(new Error('Missing refresh token'));
+    }
+    refreshingPromise = callRefresh({ refreshToken: rt } as RefreshTokenRequest)
+      .then((res: any) => {
+        // Try to persist access token from headers or response body
+        try {
+          const hdr = res?.headers?.authorization ?? res?.headers?.Authorization;
+          if (hdr && typeof hdr === 'string') {
+            const token = hdr.toLowerCase().startsWith('bearer ') ? hdr.slice(7) : hdr;
+            setAccessToken(token);
+            return res;
+          }
+        } catch {}
+        try {
+          const data = res?.data ?? {};
+          const token =
+            data?.accessToken ||
+            data?.token ||
+            data?.data?.accessToken ||
+            data?.data?.token ||
+            data?.content?.accessToken ||
+            data?.content?.token ||
+            data?.data?.content?.accessToken ||
+            data?.data?.content?.token;
+          if (typeof token === 'string' && token) {
+            setAccessToken(token);
+          }
+        } catch {}
+        return res;
+      })
       .catch((err) => {
         throw err;
       })

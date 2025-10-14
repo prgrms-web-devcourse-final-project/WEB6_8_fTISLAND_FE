@@ -47,6 +47,7 @@ import type {
   ApiResponseListStoreCategoryResponse,
   ApiResponseLoginResponse,
   ApiResponseLong,
+  ApiResponseOrderCreateResponse,
   ApiResponseOrderResponse,
   ApiResponseProductDetailResponse,
   ApiResponseProductResponse,
@@ -81,15 +82,12 @@ import type {
   GetPeriodSettlementsParams,
   GetStoreReviewsParams,
   GetTotalDeliveriesParams,
-  GetUnreadCountParams,
   LoginRequest,
-  MarkAsReadParams,
   OrderCancelRequest,
   OrderCreateRequest,
   OrderPayRequest,
   ProductCreateRequest,
   ProductUpdateRequest,
-  RefreshTokenRequest,
   ReviewCreateRequest,
   ReviewUpdateRequest,
   RiderAccountInfoUpdateRequest,
@@ -105,7 +103,6 @@ import type {
   SseEmitter,
   StoreCreateRequest,
   StoreUpdateRequest,
-  SubscribeParams,
   SwitchProfileRequest,
   UpdateStatusParams,
   UpdateUserRequest,
@@ -3760,23 +3757,13 @@ export const useUnLikeReview = <TError = unknown, TContext = unknown>(
  * 특정 알림을 읽음으로 표시합니다.
  * @summary 알림 읽음 처리
  */
-export const markAsRead = (id: number, params: MarkAsReadParams, signal?: AbortSignal) => {
-  return customInstance<ApiResponseVoid>({ url: `/api/v1/notifications/${id}/read`, method: 'POST', params, signal });
+export const markAsRead = (id: number, signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({ url: `/api/v1/notifications/${id}/read`, method: 'POST', signal });
 };
 
 export const getMarkAsReadMutationOptions = <TError = unknown, TContext = unknown>(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof markAsRead>>,
-    TError,
-    { id: number; params: MarkAsReadParams },
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof markAsRead>>,
-  TError,
-  { id: number; params: MarkAsReadParams },
-  TContext
-> => {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof markAsRead>>, TError, { id: number }, TContext>;
+}): UseMutationOptions<Awaited<ReturnType<typeof markAsRead>>, TError, { id: number }, TContext> => {
   const mutationKey = ['markAsRead'];
   const { mutation: mutationOptions } = options
     ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
@@ -3784,13 +3771,10 @@ export const getMarkAsReadMutationOptions = <TError = unknown, TContext = unknow
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey } };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof markAsRead>>,
-    { id: number; params: MarkAsReadParams }
-  > = (props) => {
-    const { id, params } = props ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof markAsRead>>, { id: number }> = (props) => {
+    const { id } = props ?? {};
 
-    return markAsRead(id, params);
+    return markAsRead(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3804,21 +3788,9 @@ export type MarkAsReadMutationError = unknown;
  * @summary 알림 읽음 처리
  */
 export const useMarkAsRead = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof markAsRead>>,
-      TError,
-      { id: number; params: MarkAsReadParams },
-      TContext
-    >;
-  },
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof markAsRead>>, TError, { id: number }, TContext> },
   queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof markAsRead>>,
-  TError,
-  { id: number; params: MarkAsReadParams },
-  TContext
-> => {
+): UseMutationResult<Awaited<ReturnType<typeof markAsRead>>, TError, { id: number }, TContext> => {
   const mutationOptions = getMarkAsReadMutationOptions(options);
 
   return useMutation(mutationOptions, queryClient);
@@ -4212,7 +4184,7 @@ export function useGetAll<TData = Awaited<ReturnType<typeof getAll>>, TError = u
  * @summary 주문 생성
  */
 export const create = (orderCreateRequest: OrderCreateRequest, signal?: AbortSignal) => {
-  return customInstance<ApiResponseOrderResponse>({
+  return customInstance<ApiResponseOrderCreateResponse>({
     url: `/api/v1/customer/orders`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4263,7 +4235,7 @@ export const useCreate = <TError = unknown, TContext = unknown>(
  * @summary 주문 취소
  */
 export const cancel = (orderId: number, orderCancelRequest: OrderCancelRequest, signal?: AbortSignal) => {
-  return customInstance<ApiResponseOrderResponse>({
+  return customInstance<ApiResponseString>({
     url: `/api/v1/customer/orders/${orderId}/cancel`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4337,7 +4309,7 @@ export const useCancel = <TError = unknown, TContext = unknown>(
  * @summary 주문 결제
  */
 export const pay = (merchantUid: string, orderPayRequest: OrderPayRequest, signal?: AbortSignal) => {
-  return customInstance<ApiResponseOrderResponse>({
+  return customInstance<ApiResponseString>({
     url: `/api/v1/customer/orders/${merchantUid}/pay`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4458,27 +4430,16 @@ export const useSignup = <TError = unknown, TContext = unknown>(
 };
 
 /**
- * Refresh Token을 사용하여 새로운 Access Token을 발급받습니다.
+ * HttpOnly 쿠키에 저장된 Refresh Token을 사용하여 새로운 Access Token을 발급받습니다.
  * @summary 토큰 재발급
  */
-export const refreshToken = (refreshTokenRequest: RefreshTokenRequest, signal?: AbortSignal) => {
-  return customInstance<ApiResponseVoid>({
-    url: `/api/v1/auth/refresh`,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    data: refreshTokenRequest,
-    signal,
-  });
+export const refreshToken = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({ url: `/api/v1/auth/refresh`, method: 'POST', signal });
 };
 
 export const getRefreshTokenMutationOptions = <TError = unknown, TContext = unknown>(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof refreshToken>>,
-    TError,
-    { data: RefreshTokenRequest },
-    TContext
-  >;
-}): UseMutationOptions<Awaited<ReturnType<typeof refreshToken>>, TError, { data: RefreshTokenRequest }, TContext> => {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof refreshToken>>, TError, void, TContext>;
+}): UseMutationOptions<Awaited<ReturnType<typeof refreshToken>>, TError, void, TContext> => {
   const mutationKey = ['refreshToken'];
   const { mutation: mutationOptions } = options
     ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
@@ -4486,35 +4447,24 @@ export const getRefreshTokenMutationOptions = <TError = unknown, TContext = unkn
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey } };
 
-  const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshToken>>, { data: RefreshTokenRequest }> = (
-    props
-  ) => {
-    const { data } = props ?? {};
-
-    return refreshToken(data);
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshToken>>, void> = () => {
+    return refreshToken();
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
 export type RefreshTokenMutationResult = NonNullable<Awaited<ReturnType<typeof refreshToken>>>;
-export type RefreshTokenMutationBody = RefreshTokenRequest;
+
 export type RefreshTokenMutationError = unknown;
 
 /**
  * @summary 토큰 재발급
  */
 export const useRefreshToken = <TError = unknown, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof refreshToken>>,
-      TError,
-      { data: RefreshTokenRequest },
-      TContext
-    >;
-  },
+  options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof refreshToken>>, TError, void, TContext> },
   queryClient?: QueryClient
-): UseMutationResult<Awaited<ReturnType<typeof refreshToken>>, TError, { data: RefreshTokenRequest }, TContext> => {
+): UseMutationResult<Awaited<ReturnType<typeof refreshToken>>, TError, void, TContext> => {
   const mutationOptions = getRefreshTokenMutationOptions(options);
 
   return useMutation(mutationOptions, queryClient);
@@ -4589,7 +4539,7 @@ export const useLogoutAll = <TError = unknown, TContext = unknown>(
 };
 
 /**
- * 이메일과 비밀번호로 로그인합니다. Access Token과 Refresh Token이 발급되며, 판매자 프로필인 경우 storeId와 함께 프로필 상세 정보도 반환됩니다.
+ * 이메일과 비밀번호로 로그인합니다. Access Token과 Refresh Token이 발급됩니다. X-Device-ID 헤더가 없을 경우, 서버에서 생성하여 응답 헤더로 반환합니다.
  * @summary 로그인
  */
 export const login = (loginRequest: LoginRequest, signal?: AbortSignal) => {
@@ -4644,7 +4594,7 @@ export const useLogin = <TError = unknown, TContext = unknown>(
  * @summary 주문 거절
  */
 export const rejectOrder = (storeId: number, orderId: number) => {
-  return customInstance<ApiResponseOrderResponse>({
+  return customInstance<ApiResponseString>({
     url: `/api/v1/stores/${storeId}/orders/${orderId}/reject`,
     method: 'PATCH',
   });
@@ -4714,7 +4664,7 @@ export const useRejectOrder = <TError = unknown, TContext = unknown>(
  * @summary 주문 수락
  */
 export const acceptOrder = (storeId: number, orderId: number) => {
-  return customInstance<ApiResponseOrderResponse>({
+  return customInstance<ApiResponseString>({
     url: `/api/v1/stores/${storeId}/orders/${orderId}/accept`,
     method: 'PATCH',
   });
@@ -8382,6 +8332,156 @@ export function useGetDaySettlements1<TData = Awaited<ReturnType<typeof getDaySe
 }
 
 /**
+ * 라이더가 어떤 주문의 상세 정보를 요청한 경우
+ * @summary 주문 단일 조회
+ */
+export const get = (orderId: number, signal?: AbortSignal) => {
+  return customInstance<ApiResponseOrderResponse>({ url: `/api/v1/rider/orders/${orderId}`, method: 'GET', signal });
+};
+
+export const getGetInfiniteQueryKey = (orderId?: number) => {
+  return ['infinate', `/api/v1/rider/orders/${orderId}`] as const;
+};
+
+export const getGetQueryKey = (orderId?: number) => {
+  return [`/api/v1/rider/orders/${orderId}`] as const;
+};
+
+export const getGetInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+  orderId: number,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetInfiniteQueryKey(orderId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof get>>> = ({ signal }) => get(orderId, signal);
+
+  return { queryKey, queryFn, enabled: !!orderId, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof get>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof get>>>;
+export type GetInfiniteQueryError = unknown;
+
+export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+  orderId: number,
+  options: {
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<Awaited<ReturnType<typeof get>>, TError, Awaited<ReturnType<typeof get>>>,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+  orderId: number,
+  options?: {
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<Awaited<ReturnType<typeof get>>, TError, Awaited<ReturnType<typeof get>>>,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+  orderId: number,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 주문 단일 조회
+ */
+
+export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+  orderId: number,
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetInfiniteQueryOptions(orderId, options);
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+export const getGetQueryOptions = <TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+  orderId: number,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> }
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetQueryKey(orderId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof get>>> = ({ signal }) => get(orderId, signal);
+
+  return { queryKey, queryFn, enabled: !!orderId, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof get>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetQueryResult = NonNullable<Awaited<ReturnType<typeof get>>>;
+export type GetQueryError = unknown;
+
+export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+  orderId: number,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<Awaited<ReturnType<typeof get>>, TError, Awaited<ReturnType<typeof get>>>,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+  orderId: number,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<Awaited<ReturnType<typeof get>>, TError, Awaited<ReturnType<typeof get>>>,
+        'initialData'
+      >;
+  },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+  orderId: number,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary 주문 단일 조회
+ */
+
+export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+  orderId: number,
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> },
+  queryClient?: QueryClient
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetQueryOptions(orderId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
+}
+
+/**
  * 특정 리뷰에 달린 좋아요의 수를 조회합니다.
  * @summary 리뷰 좋아요 수 조회
  */
@@ -8575,7 +8675,7 @@ export function useGetReviewLikeCount<TData = Awaited<ReturnType<typeof getRevie
  * 사용자의 알림 목록을 조회합니다. isRead 파라미터로 읽음/안읽음 필터링이 가능합니다.
  * @summary 알림 목록 조회
  */
-export const getNotifications = (params: GetNotificationsParams, signal?: AbortSignal) => {
+export const getNotifications = (params?: GetNotificationsParams, signal?: AbortSignal) => {
   return customInstance<ApiResponseListNotification>({ url: `/api/v1/notifications`, method: 'GET', params, signal });
 };
 
@@ -8591,7 +8691,7 @@ export const getGetNotificationsInfiniteQueryOptions = <
   TData = InfiniteData<Awaited<ReturnType<typeof getNotifications>>>,
   TError = unknown,
 >(
-  params: GetNotificationsParams,
+  params?: GetNotificationsParams,
   options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> }
 ) => {
   const { query: queryOptions } = options ?? {};
@@ -8615,7 +8715,7 @@ export function useGetNotificationsInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof getNotifications>>>,
   TError = unknown,
 >(
-  params: GetNotificationsParams,
+  params: undefined | GetNotificationsParams,
   options: {
     query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> &
       Pick<
@@ -8633,7 +8733,7 @@ export function useGetNotificationsInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof getNotifications>>>,
   TError = unknown,
 >(
-  params: GetNotificationsParams,
+  params?: GetNotificationsParams,
   options?: {
     query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> &
       Pick<
@@ -8651,7 +8751,7 @@ export function useGetNotificationsInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof getNotifications>>>,
   TError = unknown,
 >(
-  params: GetNotificationsParams,
+  params?: GetNotificationsParams,
   options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
@@ -8663,7 +8763,7 @@ export function useGetNotificationsInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof getNotifications>>>,
   TError = unknown,
 >(
-  params: GetNotificationsParams,
+  params?: GetNotificationsParams,
   options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -8679,7 +8779,7 @@ export function useGetNotificationsInfinite<
 }
 
 export const getGetNotificationsQueryOptions = <TData = Awaited<ReturnType<typeof getNotifications>>, TError = unknown>(
-  params: GetNotificationsParams,
+  params?: GetNotificationsParams,
   options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> }
 ) => {
   const { query: queryOptions } = options ?? {};
@@ -8700,7 +8800,7 @@ export type GetNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof 
 export type GetNotificationsQueryError = unknown;
 
 export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = unknown>(
-  params: GetNotificationsParams,
+  params: undefined | GetNotificationsParams,
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> &
       Pick<
@@ -8715,7 +8815,7 @@ export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotific
   queryClient?: QueryClient
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = unknown>(
-  params: GetNotificationsParams,
+  params?: GetNotificationsParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> &
       Pick<
@@ -8730,7 +8830,7 @@ export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotific
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = unknown>(
-  params: GetNotificationsParams,
+  params?: GetNotificationsParams,
   options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
@@ -8739,7 +8839,7 @@ export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotific
  */
 
 export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = unknown>(
-  params: GetNotificationsParams,
+  params?: GetNotificationsParams,
   options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -8758,31 +8858,29 @@ export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotific
  * 사용자의 읽지 않은 알림 수를 조회합니다.
  * @summary 읽지 않은 알림 수 조회
  */
-export const getUnreadCount = (params: GetUnreadCountParams, signal?: AbortSignal) => {
-  return customInstance<ApiResponseLong>({ url: `/api/v1/notifications/unread-count`, method: 'GET', params, signal });
+export const getUnreadCount = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseLong>({ url: `/api/v1/notifications/unread-count`, method: 'GET', signal });
 };
 
-export const getGetUnreadCountInfiniteQueryKey = (params?: GetUnreadCountParams) => {
-  return ['infinate', `/api/v1/notifications/unread-count`, ...(params ? [params] : [])] as const;
+export const getGetUnreadCountInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/notifications/unread-count`] as const;
 };
 
-export const getGetUnreadCountQueryKey = (params?: GetUnreadCountParams) => {
-  return [`/api/v1/notifications/unread-count`, ...(params ? [params] : [])] as const;
+export const getGetUnreadCountQueryKey = () => {
+  return [`/api/v1/notifications/unread-count`] as const;
 };
 
 export const getGetUnreadCountInfiniteQueryOptions = <
   TData = InfiniteData<Awaited<ReturnType<typeof getUnreadCount>>>,
   TError = unknown,
->(
-  params: GetUnreadCountParams,
-  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> }
-) => {
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>>;
+}) => {
   const { query: queryOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetUnreadCountInfiniteQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getGetUnreadCountInfiniteQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUnreadCount>>> = ({ signal }) =>
-    getUnreadCount(params, signal);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUnreadCount>>> = ({ signal }) => getUnreadCount(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof getUnreadCount>>,
@@ -8798,7 +8896,6 @@ export function useGetUnreadCountInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof getUnreadCount>>>,
   TError = unknown,
 >(
-  params: GetUnreadCountParams,
   options: {
     query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> &
       Pick<
@@ -8816,7 +8913,6 @@ export function useGetUnreadCountInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof getUnreadCount>>>,
   TError = unknown,
 >(
-  params: GetUnreadCountParams,
   options?: {
     query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> &
       Pick<
@@ -8834,7 +8930,6 @@ export function useGetUnreadCountInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof getUnreadCount>>>,
   TError = unknown,
 >(
-  params: GetUnreadCountParams,
   options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
@@ -8846,11 +8941,10 @@ export function useGetUnreadCountInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof getUnreadCount>>>,
   TError = unknown,
 >(
-  params: GetUnreadCountParams,
   options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetUnreadCountInfiniteQueryOptions(params, options);
+  const queryOptions = getGetUnreadCountInfiniteQueryOptions(options);
 
   const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -8861,16 +8955,17 @@ export function useGetUnreadCountInfinite<
   return query;
 }
 
-export const getGetUnreadCountQueryOptions = <TData = Awaited<ReturnType<typeof getUnreadCount>>, TError = unknown>(
-  params: GetUnreadCountParams,
-  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> }
-) => {
+export const getGetUnreadCountQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUnreadCount>>,
+  TError = unknown,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>>;
+}) => {
   const { query: queryOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetUnreadCountQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getGetUnreadCountQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUnreadCount>>> = ({ signal }) =>
-    getUnreadCount(params, signal);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUnreadCount>>> = ({ signal }) => getUnreadCount(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getUnreadCount>>,
@@ -8883,7 +8978,6 @@ export type GetUnreadCountQueryResult = NonNullable<Awaited<ReturnType<typeof ge
 export type GetUnreadCountQueryError = unknown;
 
 export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCount>>, TError = unknown>(
-  params: GetUnreadCountParams,
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> &
       Pick<
@@ -8898,7 +8992,6 @@ export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCou
   queryClient?: QueryClient
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCount>>, TError = unknown>(
-  params: GetUnreadCountParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> &
       Pick<
@@ -8913,7 +9006,6 @@ export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCou
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCount>>, TError = unknown>(
-  params: GetUnreadCountParams,
   options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
@@ -8922,11 +9014,10 @@ export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCou
  */
 
 export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCount>>, TError = unknown>(
-  params: GetUnreadCountParams,
   options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getUnreadCount>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetUnreadCountQueryOptions(params, options);
+  const queryOptions = getGetUnreadCountQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -8941,30 +9032,29 @@ export function useGetUnreadCount<TData = Awaited<ReturnType<typeof getUnreadCou
  * SSE를 통해 실시간 알림을 구독합니다. 각 기기별로 고유한 deviceId를 헤더(X-Device-ID)에 담아 요청해야 합니다.
  * @summary SSE 구독
  */
-export const subscribe = (params: SubscribeParams, signal?: AbortSignal) => {
-  return customInstance<SseEmitter>({ url: `/api/v1/notifications/stream`, method: 'GET', params, signal });
+export const subscribe = (signal?: AbortSignal) => {
+  return customInstance<SseEmitter>({ url: `/api/v1/notifications/stream`, method: 'GET', signal });
 };
 
-export const getSubscribeInfiniteQueryKey = (params?: SubscribeParams) => {
-  return ['infinate', `/api/v1/notifications/stream`, ...(params ? [params] : [])] as const;
+export const getSubscribeInfiniteQueryKey = () => {
+  return ['infinate', `/api/v1/notifications/stream`] as const;
 };
 
-export const getSubscribeQueryKey = (params?: SubscribeParams) => {
-  return [`/api/v1/notifications/stream`, ...(params ? [params] : [])] as const;
+export const getSubscribeQueryKey = () => {
+  return [`/api/v1/notifications/stream`] as const;
 };
 
 export const getSubscribeInfiniteQueryOptions = <
   TData = InfiniteData<Awaited<ReturnType<typeof subscribe>>>,
   TError = unknown,
->(
-  params: SubscribeParams,
-  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> }
-) => {
+>(options?: {
+  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>>;
+}) => {
   const { query: queryOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getSubscribeInfiniteQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getSubscribeInfiniteQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof subscribe>>> = ({ signal }) => subscribe(params, signal);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof subscribe>>> = ({ signal }) => subscribe(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof subscribe>>,
@@ -8977,7 +9067,6 @@ export type SubscribeInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof
 export type SubscribeInfiniteQueryError = unknown;
 
 export function useSubscribeInfinite<TData = InfiniteData<Awaited<ReturnType<typeof subscribe>>>, TError = unknown>(
-  params: SubscribeParams,
   options: {
     query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> &
       Pick<
@@ -8988,7 +9077,6 @@ export function useSubscribeInfinite<TData = InfiniteData<Awaited<ReturnType<typ
   queryClient?: QueryClient
 ): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useSubscribeInfinite<TData = InfiniteData<Awaited<ReturnType<typeof subscribe>>>, TError = unknown>(
-  params: SubscribeParams,
   options?: {
     query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> &
       Pick<
@@ -9003,7 +9091,6 @@ export function useSubscribeInfinite<TData = InfiniteData<Awaited<ReturnType<typ
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useSubscribeInfinite<TData = InfiniteData<Awaited<ReturnType<typeof subscribe>>>, TError = unknown>(
-  params: SubscribeParams,
   options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
@@ -9012,11 +9099,10 @@ export function useSubscribeInfinite<TData = InfiniteData<Awaited<ReturnType<typ
  */
 
 export function useSubscribeInfinite<TData = InfiniteData<Awaited<ReturnType<typeof subscribe>>>, TError = unknown>(
-  params: SubscribeParams,
   options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getSubscribeInfiniteQueryOptions(params, options);
+  const queryOptions = getSubscribeInfiniteQueryOptions(options);
 
   const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -9027,15 +9113,14 @@ export function useSubscribeInfinite<TData = InfiniteData<Awaited<ReturnType<typ
   return query;
 }
 
-export const getSubscribeQueryOptions = <TData = Awaited<ReturnType<typeof subscribe>>, TError = unknown>(
-  params: SubscribeParams,
-  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> }
-) => {
+export const getSubscribeQueryOptions = <TData = Awaited<ReturnType<typeof subscribe>>, TError = unknown>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>>;
+}) => {
   const { query: queryOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getSubscribeQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getSubscribeQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof subscribe>>> = ({ signal }) => subscribe(params, signal);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof subscribe>>> = ({ signal }) => subscribe(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof subscribe>>,
@@ -9048,7 +9133,6 @@ export type SubscribeQueryResult = NonNullable<Awaited<ReturnType<typeof subscri
 export type SubscribeQueryError = unknown;
 
 export function useSubscribe<TData = Awaited<ReturnType<typeof subscribe>>, TError = unknown>(
-  params: SubscribeParams,
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> &
       Pick<
@@ -9059,7 +9143,6 @@ export function useSubscribe<TData = Awaited<ReturnType<typeof subscribe>>, TErr
   queryClient?: QueryClient
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useSubscribe<TData = Awaited<ReturnType<typeof subscribe>>, TError = unknown>(
-  params: SubscribeParams,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> &
       Pick<
@@ -9074,7 +9157,6 @@ export function useSubscribe<TData = Awaited<ReturnType<typeof subscribe>>, TErr
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useSubscribe<TData = Awaited<ReturnType<typeof subscribe>>, TError = unknown>(
-  params: SubscribeParams,
   options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
@@ -9083,11 +9165,10 @@ export function useSubscribe<TData = Awaited<ReturnType<typeof subscribe>>, TErr
  */
 
 export function useSubscribe<TData = Awaited<ReturnType<typeof subscribe>>, TError = unknown>(
-  params: SubscribeParams,
   options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof subscribe>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getSubscribeQueryOptions(params, options);
+  const queryOptions = getSubscribeQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -10059,75 +10140,75 @@ export function useGetInProgressDetailDelivery<
  * 소비자가 어떤 주문의 상세 정보를 요청한 경우
  * @summary 주문 단일 조회
  */
-export const get = (orderId: number, signal?: AbortSignal) => {
+export const get1 = (orderId: number, signal?: AbortSignal) => {
   return customInstance<ApiResponseOrderResponse>({ url: `/api/v1/customer/orders/${orderId}`, method: 'GET', signal });
 };
 
-export const getGetInfiniteQueryKey = (orderId?: number) => {
+export const getGet1InfiniteQueryKey = (orderId?: number) => {
   return ['infinate', `/api/v1/customer/orders/${orderId}`] as const;
 };
 
-export const getGetQueryKey = (orderId?: number) => {
+export const getGet1QueryKey = (orderId?: number) => {
   return [`/api/v1/customer/orders/${orderId}`] as const;
 };
 
-export const getGetInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+export const getGet1InfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof get1>>>, TError = unknown>(
   orderId: number,
-  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> }
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> }
 ) => {
   const { query: queryOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetInfiniteQueryKey(orderId);
+  const queryKey = queryOptions?.queryKey ?? getGet1InfiniteQueryKey(orderId);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof get>>> = ({ signal }) => get(orderId, signal);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof get1>>> = ({ signal }) => get1(orderId, signal);
 
   return { queryKey, queryFn, enabled: !!orderId, ...queryOptions } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof get>>,
+    Awaited<ReturnType<typeof get1>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type GetInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof get>>>;
-export type GetInfiniteQueryError = unknown;
+export type Get1InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof get1>>>;
+export type Get1InfiniteQueryError = unknown;
 
-export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+export function useGet1Infinite<TData = InfiniteData<Awaited<ReturnType<typeof get1>>>, TError = unknown>(
   orderId: number,
   options: {
-    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> &
+    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> &
       Pick<
-        DefinedInitialDataOptions<Awaited<ReturnType<typeof get>>, TError, Awaited<ReturnType<typeof get>>>,
+        DefinedInitialDataOptions<Awaited<ReturnType<typeof get1>>, TError, Awaited<ReturnType<typeof get1>>>,
         'initialData'
       >;
   },
   queryClient?: QueryClient
 ): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+export function useGet1Infinite<TData = InfiniteData<Awaited<ReturnType<typeof get1>>>, TError = unknown>(
   orderId: number,
   options?: {
-    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> &
+    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> &
       Pick<
-        UndefinedInitialDataOptions<Awaited<ReturnType<typeof get>>, TError, Awaited<ReturnType<typeof get>>>,
+        UndefinedInitialDataOptions<Awaited<ReturnType<typeof get1>>, TError, Awaited<ReturnType<typeof get1>>>,
         'initialData'
       >;
   },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+export function useGet1Infinite<TData = InfiniteData<Awaited<ReturnType<typeof get1>>>, TError = unknown>(
   orderId: number,
-  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> },
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
  * @summary 주문 단일 조회
  */
 
-export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof get>>>, TError = unknown>(
+export function useGet1Infinite<TData = InfiniteData<Awaited<ReturnType<typeof get1>>>, TError = unknown>(
   orderId: number,
-  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> },
+  options?: { query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetInfiniteQueryOptions(orderId, options);
+  const queryOptions = getGet1InfiniteQueryOptions(orderId, options);
 
   const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -10138,63 +10219,63 @@ export function useGetInfinite<TData = InfiniteData<Awaited<ReturnType<typeof ge
   return query;
 }
 
-export const getGetQueryOptions = <TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+export const getGet1QueryOptions = <TData = Awaited<ReturnType<typeof get1>>, TError = unknown>(
   orderId: number,
-  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> }
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> }
 ) => {
   const { query: queryOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetQueryKey(orderId);
+  const queryKey = queryOptions?.queryKey ?? getGet1QueryKey(orderId);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof get>>> = ({ signal }) => get(orderId, signal);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof get1>>> = ({ signal }) => get1(orderId, signal);
 
   return { queryKey, queryFn, enabled: !!orderId, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof get>>,
+    Awaited<ReturnType<typeof get1>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type GetQueryResult = NonNullable<Awaited<ReturnType<typeof get>>>;
-export type GetQueryError = unknown;
+export type Get1QueryResult = NonNullable<Awaited<ReturnType<typeof get1>>>;
+export type Get1QueryError = unknown;
 
-export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+export function useGet1<TData = Awaited<ReturnType<typeof get1>>, TError = unknown>(
   orderId: number,
   options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> &
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> &
       Pick<
-        DefinedInitialDataOptions<Awaited<ReturnType<typeof get>>, TError, Awaited<ReturnType<typeof get>>>,
+        DefinedInitialDataOptions<Awaited<ReturnType<typeof get1>>, TError, Awaited<ReturnType<typeof get1>>>,
         'initialData'
       >;
   },
   queryClient?: QueryClient
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+export function useGet1<TData = Awaited<ReturnType<typeof get1>>, TError = unknown>(
   orderId: number,
   options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> &
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> &
       Pick<
-        UndefinedInitialDataOptions<Awaited<ReturnType<typeof get>>, TError, Awaited<ReturnType<typeof get>>>,
+        UndefinedInitialDataOptions<Awaited<ReturnType<typeof get1>>, TError, Awaited<ReturnType<typeof get1>>>,
         'initialData'
       >;
   },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+export function useGet1<TData = Awaited<ReturnType<typeof get1>>, TError = unknown>(
   orderId: number,
-  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> },
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
  * @summary 주문 단일 조회
  */
 
-export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = unknown>(
+export function useGet1<TData = Awaited<ReturnType<typeof get1>>, TError = unknown>(
   orderId: number,
-  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> },
+  options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof get1>>, TError, TData>> },
   queryClient?: QueryClient
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGetQueryOptions(orderId, options);
+  const queryOptions = getGet1QueryOptions(orderId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

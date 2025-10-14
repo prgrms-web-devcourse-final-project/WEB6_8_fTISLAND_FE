@@ -42,8 +42,35 @@ function RouteComponent() {
   const switchMutation = useSwitchProfile({
     mutation: {
       onSuccess: (res) => {
-        const type =
-          (res as any)?.data?.content?.currentProfileType ?? (res as any)?.data?.content?.currentActiveProfileType;
+        const content = (res as any)?.data?.content;
+        try {
+          const hdr = (res as any)?.headers?.authorization ?? (res as any)?.headers?.Authorization;
+          const token =
+            typeof hdr === 'string' && hdr.toLowerCase().startsWith('bearer ')
+              ? hdr.slice(7)
+              : typeof hdr === 'string'
+                ? hdr
+                : undefined;
+          if (token) {
+            const raw = localStorage.getItem('auth');
+            const parsed = raw ? JSON.parse(raw) : { state: {} };
+            parsed.state = { ...(parsed.state ?? {}), accessToken: token };
+            localStorage.setItem('auth', JSON.stringify(parsed));
+          }
+        } catch {}
+        const type = content?.currentProfileType ?? content?.currentActiveProfileType;
+        const profileId = content?.currentProfileDetail?.profileId ?? content?.currentActiveProfileId;
+        const storeId = content?.currentProfileDetail?.storeId ?? content?.storeId;
+        // Persist switched profile info like other mypages
+        useAuthStore.getState().setAuth({
+          ...(typeof (res as any)?.headers?.authorization === 'string' ||
+          typeof (res as any)?.headers?.Authorization === 'string'
+            ? { accessToken: ((res as any)?.headers?.authorization || (res as any)?.headers?.Authorization) as string }
+            : {}),
+          currentActiveProfileType: type,
+          currentActiveProfileId: profileId,
+          storeId,
+        });
         if (type === 'CUSTOMER') navigate({ to: '/customer/mypage' });
         else if (type === 'SELLER') navigate({ to: '/seller/mypage' });
         else if (type === 'RIDER') navigate({ to: '/rider/mypage' });

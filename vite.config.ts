@@ -3,6 +3,7 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
+import mkcert from 'vite-plugin-mkcert';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,6 +14,7 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
+    mkcert(),
   ],
   resolve: {
     alias: {
@@ -20,6 +22,17 @@ export default defineConfig({
     },
   },
   server: {
+    https: {
+      cert: undefined,
+      key: undefined,
+    },
     allowedHosts: ['657c7520054d.ngrok-free.app'],
+    proxy: {
+      '/ws': {
+        target: 'https://api.deliver-anything.shop/ws',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
 });

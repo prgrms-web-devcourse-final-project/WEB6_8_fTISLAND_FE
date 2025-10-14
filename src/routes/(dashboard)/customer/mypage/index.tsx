@@ -12,6 +12,7 @@ import { useGetMyInfo, useGetAddress, useGetAvailableProfiles, useSwitchProfile 
 import { useChangePassword } from '@/api/generated';
 import type { ChangePasswordRequest } from '@/api/generated/model/changePasswordRequest';
 import { toast } from 'sonner';
+import AddressManage from '@/components/address/AddressManage';
 
 export const Route = createFileRoute('/(dashboard)/customer/mypage/')({
   component: RouteComponent,
@@ -28,6 +29,7 @@ function RouteComponent() {
   const [newPassword, setNewPassword] = React.useState('');
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
   const [keyboardOffset, setKeyboardOffset] = React.useState(0);
+  const [addressOpen, setAddressOpen] = React.useState(false);
   // roleProfiles mock removed; using availableProfiles + switch API instead
 
   React.useEffect(() => {
@@ -74,8 +76,26 @@ function RouteComponent() {
   const switchMutation = useSwitchProfile({
     mutation: {
       onSuccess: (res) => {
-        const type =
-          (res as any)?.data?.content?.currentProfileType ?? (res as any)?.data?.content?.currentActiveProfileType;
+        const content = (res as any)?.data?.content;
+        let newAccessToken: string | undefined;
+        try {
+          const hdr = (res as any)?.headers?.authorization ?? (res as any)?.headers?.Authorization;
+          newAccessToken =
+            typeof hdr === 'string' && hdr.toLowerCase().startsWith('bearer ')
+              ? hdr.slice(7)
+              : typeof hdr === 'string'
+                ? hdr
+                : undefined;
+        } catch {}
+        const type = content?.currentProfileType ?? content?.currentActiveProfileType;
+        const profileId = content?.currentProfileDetail?.profileId ?? content?.currentActiveProfileId;
+        const storeId = content?.currentProfileDetail?.storeId ?? content?.storeId;
+        useAuthStore.getState().setAuth({
+          ...(newAccessToken ? { accessToken: newAccessToken } : {}),
+          currentActiveProfileType: type,
+          currentActiveProfileId: profileId,
+          storeId,
+        });
         if (type === 'CUSTOMER') navigate({ to: '/customer/mypage' });
         else if (type === 'SELLER') navigate({ to: '/seller/mypage' });
         else if (type === 'RIDER') navigate({ to: '/rider/mypage' });
@@ -124,8 +144,11 @@ function RouteComponent() {
               className='h-9 rounded-full border-[#cbd8e2] px-4 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'>
               주소 관리
             </Button>
-            <Button className='h-9 rounded-full bg-[#1ba7a1] px-4 text-[12px] font-semibold text-white hover:bg-[#17928d]'>
-              리뷰 관리
+            <Button
+              variant='outline'
+              className='h-9 rounded-full border-[#cbd8e2] px-4 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'
+              onClick={() => setAddressOpen(true)}>
+              주소 관리
             </Button>
           </div>
         </section>
@@ -331,6 +354,20 @@ function RouteComponent() {
           </CardContent>
         </Card>
       </main>
+      <Dialog open={addressOpen} onOpenChange={setAddressOpen}>
+        <DialogContent className='mx-auto w-[90%] max-w-[28rem] max-h-[85vh] overflow-hidden rounded-3xl border-0 p-0 shadow-2xl'>
+          <AddressManage
+            defaultOpen
+            asDialog
+            role='customer'
+            onSave={() => {
+              setAddressOpen(false);
+              (addressQuery as any)?.refetch?.();
+            }}
+            onClose={() => setAddressOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

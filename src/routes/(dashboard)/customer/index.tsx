@@ -9,7 +9,6 @@ import { useForm } from 'react-hook-form';
 
 import { CustomerHeader } from './_components/CustomerHeader';
 import { useGetMyProfile2, useGetAddress, useGetUnreadCount } from '@/api/generated';
-import type { GetUnreadCountParams } from '@/api/generated/model/getUnreadCountParams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AddressManage from '@/components/address/AddressManage';
 import StoreFilterSheet, { type StoreFilterValue } from '@/components/StoreFilterSheet';
@@ -65,10 +64,9 @@ function RouteComponent() {
   const defaultAddressId = profile?.defaultAddressId as number | undefined;
   const profileId = profile?.profileId as number | undefined;
   const addressQuery = useGetAddress(defaultAddressId ?? 0, { query: { enabled: !!defaultAddressId } } as any);
-  const unreadQuery = useGetUnreadCount(
-    { profileId: profileId ?? 0 } as GetUnreadCountParams,
-    { query: { enabled: !!profileId, staleTime: 10_000, refetchOnWindowFocus: false } } as any
-  );
+  const unreadQuery = useGetUnreadCount({
+    query: { enabled: !!profileId, staleTime: 10_000, refetchOnWindowFocus: false },
+  } as any);
   const unreadCount = Number((unreadQuery.data as any)?.data?.content?.count ?? 0);
   const boundAddress = (addressQuery.data as any)?.data?.content?.address as string | undefined;
   React.useEffect(() => {
@@ -101,11 +99,19 @@ function RouteComponent() {
       return await http.get('/api/v1/search/stores', { params, signal });
     },
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
+    getNextPageParam: (lastPage: any) => lastPage?.content?.nextPageToken ?? undefined,
     refetchOnWindowFocus: false,
   });
   const storePages = (storesQuery.data as any)?.pages ?? [];
-  const stores = storePages.flatMap((p: any) => p?.data?.content?.stores ?? []);
+  const stores = storePages.flatMap((p: any) => {
+    const c = p?.content;
+    if (!c) return [] as any[];
+    // 다양한 페이로드 형태 지원
+    if (Array.isArray(c)) return c as any[]; // content: []
+    if (Array.isArray(c.content)) return c.content as any[]; // content: { content: [] }
+    if (Array.isArray(c.stores)) return c.stores as any[]; // content: { stores: [] }
+    return [] as any[];
+  });
 
   // 알림 팝업 상태 & 필터
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
@@ -131,26 +137,23 @@ function RouteComponent() {
   }, [notificationsQuery.data]);
   const qc = useQueryClient();
 
-  // SSE 구독: 프로필 ID 기준 (X-Device-ID는 axios 인터셉터에서 자동 첨부)
-  useSubscribe(
-    { profileId: profileId ?? 0 } as any,
-    {
-      query: {
-        enabled: !!profileId,
-        refetchOnWindowFocus: false,
-        staleTime: Infinity,
-        select: (res: any) => res,
-        onSuccess: () => {},
-        onError: () => {},
-      },
-    } as any
-  );
+  // SSE 구독: 최신 스펙에 맞게 파라미터 없이 options만 전달
+  useSubscribe({
+    query: {
+      enabled: !!profileId,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      select: (res: any) => res,
+      onSuccess: () => {},
+      onError: () => {},
+    },
+  } as any);
   React.useEffect(() => {
     if (!profileId) return;
     // SSE 자체는 orval의 customInstance를 통해 열리고, 서버 푸시 후 캐시 무효화로 반영
     const invalidate = () => {
       try {
-        qc.invalidateQueries({ queryKey: getGetUnreadCountQueryKey({ profileId }) });
+        qc.invalidateQueries({ queryKey: getGetUnreadCountQueryKey() });
         if (notificationsOpen) notificationsQuery.refetch();
       } catch {}
     };
@@ -265,31 +268,45 @@ function RouteComponent() {
             </Button>
           </div>
           <div className='space-y-3'>
-            {stores.map((s: any) => (
-              <Card key={s.storeId} className='border-none bg-white shadow-sm'>
-                <CardContent className='flex gap-3 px-4 py-3'>
-                  <div className='flex size-16 items-center justify-center rounded-2xl bg-[#e2f6f5] text-[#1f6e6b]'>
-                    {s.name?.slice(0, 2) ?? '가게'}
-                  </div>
-                  <div className='flex-1 space-y-1'>
-                    <p className='text-[14px] font-semibold text-[#1b1b1b]'>{s.name}</p>
-                    <p className='text-[12px] text-[#6b7785]'>{s.distanceText ?? ''}</p>
-                    <div className='flex items-center gap-2 text-[12px] text-[#1f6e6b]'>
-                      <span className='inline-flex items-center gap-1 rounded-full bg-[#2ac1bc]/10 px-2 py-0.5'>
-                        <Star className='size-3 text-[#2ac1bc]' aria-hidden />
-                        {s.rating ?? 'NEW'}
-                      </span>
-                      {s.tags?.length ? <span>#{s.tags.join(' #')}</span> : null}
-                    </div>
-                  </div>
-                  <Button
-                    size='sm'
-                    className='h-8 rounded-full bg-[#2ac1bc] px-3 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'>
-                    주문하기
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {stores.map((s: any) => {
+              const storeId = s.storeId ?? s.id;
+              const distanceText =
+                typeof s.distance === 'number' ? `${s.distance.toFixed(1)}km` : (s.distanceText ?? '');
+              const feeText = typeof s.deliveryFee === 'number' ? `배달비 ₩ ${s.deliveryFee.toLocaleString()}` : '';
+              return (
+                <button
+                  key={storeId}
+                  type='button'
+                  onClick={() => navigate({ to: '/customer/store/$storeId', params: { storeId: String(storeId) } })}
+                  className='w-full text-left'>
+                  <Card className='border-none bg-white shadow-sm'>
+                    <CardContent className='flex gap-3 px-4 py-3'>
+                      <div className='flex size-16 items-center justify-center overflow-hidden rounded-2xl bg-[#e2f6f5] text-[#1f6e6b]'>
+                        {s.imageUrl ? (
+                          <img src={s.imageUrl} alt={s.name} className='size-16 object-cover' />
+                        ) : (
+                          (s.name?.slice(0, 2) ?? '가게')
+                        )}
+                      </div>
+                      <div className='flex-1 space-y-1'>
+                        <p className='text-[14px] font-semibold text-[#1b1b1b]'>{s.name}</p>
+                        <p className='text-[12px] text-[#6b7785]'>{s.roadAddr || s.address || ''}</p>
+                        <div className='flex items-center gap-2 text-[12px] text-[#1f6e6b]'>
+                          {distanceText ? (
+                            <span className='inline-flex items-center gap-1 rounded-full bg-[#2ac1bc]/10 px-2 py-0.5'>
+                              <Star className='size-3 text-[#2ac1bc]' aria-hidden />
+                              {distanceText}
+                            </span>
+                          ) : null}
+                          {feeText ? <span className='text-[#64748b]'>{feeText}</span> : null}
+                          {s.category ? <span className='text-[#64748b]'>· {s.category}</span> : null}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+              );
+            })}
             {storesQuery.hasNextPage ? (
               <div className='flex justify-center pt-2'>
                 <Button
@@ -391,7 +408,7 @@ function RouteComponent() {
                             onSuccess: () => {
                               try {
                                 qc.invalidateQueries({
-                                  queryKey: getGetUnreadCountQueryKey({ profileId: profileId! }),
+                                  queryKey: getGetUnreadCountQueryKey(),
                                 });
                               } catch {}
                             },

@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { useGetAvailableProfiles, useSwitchProfile } from '@/api/generated';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/auth';
 
 export type ProfileRole = 'consumer' | 'seller' | 'rider';
 
@@ -24,8 +25,28 @@ export function ProfileRoleSwitcher({ roles = DEFAULT_ROLES, value, onChange }: 
   const switchMutation = useSwitchProfile({
     mutation: {
       onSuccess: (res) => {
-        const type =
-          (res as any)?.data?.content?.currentProfileType ?? (res as any)?.data?.content?.currentActiveProfileType;
+        const content = (res as any)?.data?.content;
+        // Authorization 헤더에서 새 토큰을 캡처하여 로컬스토리지에 저장
+        let newAccessToken: string | undefined;
+        try {
+          const hdr = (res as any)?.headers?.authorization ?? (res as any)?.headers?.Authorization;
+          newAccessToken =
+            typeof hdr === 'string' && hdr.toLowerCase().startsWith('bearer ')
+              ? hdr.slice(7)
+              : typeof hdr === 'string'
+                ? hdr
+                : undefined;
+        } catch {}
+        const type = content?.currentProfileType ?? content?.currentActiveProfileType;
+        const profileId = content?.currentProfileDetail?.profileId ?? content?.currentActiveProfileId;
+        const storeId = content?.currentProfileDetail?.storeId ?? content?.storeId;
+        // Persist switched profile info
+        useAuthStore.getState().setAuth({
+          ...(newAccessToken ? { accessToken: newAccessToken } : {}),
+          currentActiveProfileType: type,
+          currentActiveProfileId: profileId,
+          storeId,
+        });
         toast.success('프로필이 전환되었습니다.');
         if (type === 'CUSTOMER') navigate({ to: '/customer' });
         else if (type === 'SELLER') navigate({ to: '/seller' });

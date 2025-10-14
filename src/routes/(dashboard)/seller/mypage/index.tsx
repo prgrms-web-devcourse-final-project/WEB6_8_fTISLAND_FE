@@ -7,17 +7,15 @@ import { Label } from '@/components/ui/label';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { SellerFooterNav } from '../_components/SellerFooterNav';
 import { User, Store, Bike } from 'lucide-react';
-import {
-  useGetAvailableProfiles,
-  useSwitchProfile,
-  useGetMyInfo,
-  useGetAddress,
-  useChangePassword,
-} from '@/api/generated';
+import { useGetAvailableProfiles, useSwitchProfile, useGetMyInfo, useChangePassword } from '@/api/generated';
 import type { ChangePasswordRequest } from '@/api/generated/model/changePasswordRequest';
 import { toast } from 'sonner';
 import useLogout from '@/routes/login/_hooks/useLogout';
 import { useAuthStore } from '@/store/auth';
+import { useUpdateStore, getGetStoreQueryKey, useGetStore } from '@/api/generated';
+import { useQueryClient } from '@tanstack/react-query';
+import { useKakaoLoader } from '@/lib/useKakaoLoader';
+import { useStoreDetailsStore } from '@/store/storeDetails';
 
 // footer items are rendered by SellerFooterNav directly
 
@@ -37,13 +35,48 @@ function RouteComponent() {
   const [newPassword, setNewPassword] = React.useState('');
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
   const [keyboardOffset, setKeyboardOffset] = React.useState(0);
+  const [addressOpen, setAddressOpen] = React.useState(false);
+  const [searchKeyword, setSearchKeyword] = React.useState('');
+  const [searching, setSearching] = React.useState(false);
+  const [searchResults, setSearchResults] = React.useState<
+    Array<{ id: string; address: string; buildingName?: string; postalCode?: string; lat?: number; lng?: number }>
+  >([]);
+  const [detailOpen, setDetailOpen] = React.useState(false);
+  const [selectedPick, setSelectedPick] = React.useState<{
+    id: string;
+    address: string;
+    buildingName?: string;
+    postalCode?: string;
+    lat?: number;
+    lng?: number;
+  } | null>(null);
+  const [detailUnit, setDetailUnit] = React.useState('');
+  const { ready: kakaoReady } = useKakaoLoader();
   const availableProfilesQuery = useGetAvailableProfiles();
   const available = ((availableProfilesQuery.data as any)?.data?.content?.availableProfiles ?? []) as string[];
   const switchMutation = useSwitchProfile({
     mutation: {
       onSuccess: (res) => {
-        const type =
-          (res as any)?.data?.content?.currentProfileType ?? (res as any)?.data?.content?.currentActiveProfileType;
+        const content = (res as any)?.data?.content;
+        let newAccessToken: string | undefined;
+        try {
+          const hdr = (res as any)?.headers?.authorization ?? (res as any)?.headers?.Authorization;
+          newAccessToken =
+            typeof hdr === 'string' && hdr.toLowerCase().startsWith('bearer ')
+              ? hdr.slice(7)
+              : typeof hdr === 'string'
+                ? hdr
+                : undefined;
+        } catch {}
+        const type = content?.currentProfileType ?? content?.currentActiveProfileType;
+        const profileId = content?.currentProfileDetail?.profileId ?? content?.currentActiveProfileId;
+        const storeId = content?.currentProfileDetail?.storeId ?? content?.storeId;
+        useAuthStore.getState().setAuth({
+          ...(newAccessToken ? { accessToken: newAccessToken } : {}),
+          currentActiveProfileType: type,
+          currentActiveProfileId: profileId,
+          storeId,
+        });
         if (type === 'CUSTOMER') navigate({ to: '/customer/mypage' });
         else if (type === 'SELLER') navigate({ to: '/seller/mypage' });
         else if (type === 'RIDER') navigate({ to: '/rider/mypage' });
@@ -87,16 +120,22 @@ function RouteComponent() {
   const { logout } = useLogout();
   const clearAuth = useAuthStore((s) => s.clear);
   const isLoggedIn = !!useAuthStore((s) => s.accessToken);
+  const storeId = useAuthStore((s) => s.storeId);
+  const qc = useQueryClient();
+  const updateStoreMutation = useUpdateStore();
+  const setSelectedStore = useStoreDetailsStore((s) => s.setSelectedStore);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const effectiveStoreId = Number.isFinite(storeId as any) ? (storeId as number) : undefined;
+  const storeQuery = useGetStore(effectiveStoreId ?? 0, {
+    query: { enabled: !!effectiveStoreId, staleTime: 10_000, refetchOnWindowFocus: false },
+  } as any);
 
   // 내 정보 조회 및 표시값
   const myInfoQuery = useGetMyInfo();
   const my = (myInfoQuery.data as any)?.data?.content;
   const displayName =
     my?.currentProfileDetail?.nickname ?? my?.username ?? (my as any)?.name ?? FALLBACK_PROFILE.nickname;
-  const defaultAddressId = my?.currentProfileDetail?.defaultAddressId as number | undefined;
-  const addressQuery = useGetAddress(defaultAddressId ?? 0, { query: { enabled: !!defaultAddressId } } as any);
-  const addressText = (addressQuery.data as any)?.data?.content?.address ?? FALLBACK_PROFILE.address;
+  const addressText = (storeQuery.data as any)?.data?.content?.roadAddr ?? FALLBACK_PROFILE.address;
 
   const changePasswordMutation = useChangePassword({
     mutation: {
@@ -133,11 +172,9 @@ function RouteComponent() {
           <div className='flex gap-2'>
             <Button
               variant='outline'
-              className='h-9 rounded-full border-[#cbd8e2] px-4 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'>
+              className='h-9 rounded-full border-[#cbd8e2] px-4 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'
+              onClick={() => setAddressOpen(true)}>
               주소 관리
-            </Button>
-            <Button className='h-9 rounded-full bg-[#1ba7a1] px-4 text-[12px] font-semibold text-white hover:bg-[#17928d]'>
-              리뷰 관리
             </Button>
           </div>
         </section>
@@ -338,6 +375,152 @@ function RouteComponent() {
         ) : null}
       </main>
       <SellerFooterNav active='my' />
+      {/* 판매자 주소 관리 다이얼로그 */}
+      <Dialog open={addressOpen} onOpenChange={setAddressOpen}>
+        <DialogContent className='mx-auto w-[90%] max-w-[26rem] rounded-2xl border-0 p-0 shadow-2xl'>
+          <DialogHeader className='px-5 pb-3 pt-4'>
+            <DialogTitle className='text-[15px] font-semibold text-[#1b1b1b]'>상점 주소 관리</DialogTitle>
+          </DialogHeader>
+          <div className='space-y-3 px-5 pb-5'>
+            <div className='rounded-2xl border border-[#bbe7e4] bg-[#f0fffd] p-3'>
+              <Label className='mb-1 block text-[12px] font-semibold text-[#1b1b1b]'>주소 검색</Label>
+              <div className='flex items-center gap-2'>
+                <Input
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder='예) 서울시 중구 세종대로 110'
+                  className='h-9 flex-1 text-[13px]'
+                />
+                <Button
+                  type='button'
+                  disabled={!kakaoReady || searching || !searchKeyword.trim()}
+                  aria-busy={searching}
+                  className='h-9 rounded-full bg-[#2ac1bc] px-3 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'
+                  onClick={() => {
+                    try {
+                      setSearching(true);
+                      const w: any = window;
+                      if (!w?.kakao?.maps?.services) {
+                        toast.error('지도를 초기화하는 중입니다. 잠시 후 다시 시도해 주세요.');
+                        setSearching(false);
+                        return;
+                      }
+                      const ps = new w.kakao.maps.services.Places();
+                      ps.keywordSearch(
+                        searchKeyword,
+                        (data: any, status: any) => {
+                          const ok = w.kakao.maps.services.Status.OK;
+                          if (status === ok && data) {
+                            const mapped = (data || []).map((item: any) => ({
+                              id: item.id,
+                              address: item.road_address_name || item.address_name,
+                              buildingName: item.place_name,
+                              postalCode: item.road_address?.zone_no,
+                              lat: item.y ? Number(item.y) : undefined,
+                              lng: item.x ? Number(item.x) : undefined,
+                            }));
+                            setSearchResults(mapped);
+                          } else {
+                            setSearchResults([]);
+                          }
+                          setSearching(false);
+                        },
+                        { page: 1, size: 10 }
+                      );
+                    } catch {
+                      setSearching(false);
+                    }
+                  }}>
+                  검색
+                </Button>
+              </div>
+              <p className='mt-1 text-[11px] text-[#6b7785]'>카카오 지도 검색으로 좌표를 저장합니다.</p>
+            </div>
+            {searchResults.length > 0 ? (
+              <ul className='max-h-60 space-y-2 overflow-y-auto rounded-2xl bg-white px-3 py-2 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)]'>
+                {searchResults.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type='button'
+                      className='w-full rounded-xl px-3 py-2 text-left text-[13px] text-[#1b1b1b] transition-colors hover:bg-[#f5f7f9]'
+                      onClick={() => {
+                        setSelectedPick(item);
+                        setDetailUnit('');
+                        setDetailOpen(true);
+                      }}>
+                      <p className='font-semibold'>{item.address}</p>
+                      {item.buildingName ? <p className='text-[12px] text-[#667085]'>{item.buildingName}</p> : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : searching ? (
+              <p className='px-2 text-[12px] text-[#6b7785]'>주소를 검색 중입니다…</p>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className='mx-auto w-[90%] max-w-[26rem] rounded-2xl border-0 p-0 shadow-2xl'>
+          <DialogHeader className='px-5 pb-3 pt-4'>
+            <DialogTitle className='text-[15px] font-semibold text-[#1b1b1b]'>상세 주소 입력</DialogTitle>
+          </DialogHeader>
+          {selectedPick ? (
+            <div className='space-y-3 px-5 pb-5'>
+              <div className='rounded-xl bg-white px-3 py-2 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.45)]'>
+                <p className='text-[12px] text-[#6b7785]'>선택한 주소</p>
+                <p className='text-[13px] font-semibold text-[#1b1b1b]'>{selectedPick.address}</p>
+                {selectedPick.buildingName ? (
+                  <p className='text-[11px] text-[#94a3b8]'>{selectedPick.buildingName}</p>
+                ) : null}
+              </div>
+              <div className='space-y-2'>
+                <Label className='text-[12px] font-semibold text-[#1b1b1b]'>상세 주소</Label>
+                <Input
+                  value={detailUnit}
+                  onChange={(e) => setDetailUnit(e.target.value)}
+                  placeholder='예) 101동 1203호'
+                  className='h-9 text-[13px]'
+                />
+              </div>
+              <div className='flex justify-end'>
+                <Button
+                  type='button'
+                  className='h-9 rounded-full bg-[#2ac1bc] px-4 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'
+                  disabled={updateStoreMutation.isPending}
+                  aria-busy={updateStoreMutation.isPending}
+                  onClick={() => {
+                    if (!storeId || !selectedPick) return;
+                    const roadAddr = `${selectedPick.address}${detailUnit.trim() ? ` ${detailUnit.trim()}` : ''}`;
+                    const lat = selectedPick.lat ?? 0;
+                    const lng = selectedPick.lng ?? 0;
+                    updateStoreMutation.mutate(
+                      { storeId, data: { roadAddr, lat, lng } as any },
+                      {
+                        onSuccess: () => {
+                          toast.success('상점 주소가 업데이트되었어요.');
+                          try {
+                            qc.invalidateQueries({ queryKey: getGetStoreQueryKey(storeId) as any });
+                          } catch {}
+                          try {
+                            setSelectedStore({ id: storeId, roadAddr, lat, lng });
+                          } catch {}
+                          setDetailOpen(false);
+                          setAddressOpen(false);
+                        },
+                        onError: () => {
+                          toast.error('주소 업데이트에 실패했어요. 잠시 후 다시 시도해 주세요.');
+                        },
+                      }
+                    );
+                  }}>
+                  저장
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

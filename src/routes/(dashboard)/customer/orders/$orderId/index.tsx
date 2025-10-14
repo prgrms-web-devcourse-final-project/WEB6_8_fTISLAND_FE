@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
-import { useGet, useCancel, getGetAllInfiniteQueryKey } from '@/api/generated';
+import {
+  useGet,
+  useCancel,
+  getGetQueryKey,
+  getGetInProgressOrdersInfiniteQueryKey,
+  getGetCompletedOrdersInfiniteQueryKey,
+} from '@/api/generated';
 import { OrderResponseStatus } from '@/api/generated/model/orderResponseStatus';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -43,7 +49,12 @@ function RouteComponent() {
     mutation: {
       onSuccess: () => {
         toast.success('주문을 취소했어요');
-        queryClient.invalidateQueries({ queryKey: getGetAllInfiniteQueryKey(undefined) as any });
+        // 상세/목록 쿼리 무효화로 즉시 갱신
+        if (Number.isFinite(numericOrderId)) {
+          queryClient.invalidateQueries({ queryKey: getGetQueryKey(numericOrderId) as any });
+        }
+        queryClient.invalidateQueries({ queryKey: getGetInProgressOrdersInfiniteQueryKey() as any });
+        queryClient.invalidateQueries({ queryKey: getGetCompletedOrdersInfiniteQueryKey(undefined) as any });
         setStatus('completed');
         setOpenCancel(false);
         reset({ cancelReason: '' });
@@ -76,9 +87,12 @@ function RouteComponent() {
     } else if ([OrderResponseStatus.RIDER_ASSIGNED, OrderResponseStatus.DELIVERING].includes((s as any) ?? '')) {
       setStatus('delivering');
     } else if (
-      [OrderResponseStatus.COMPLETED, OrderResponseStatus.CANCELED, OrderResponseStatus.REJECTED].includes(
-        (s as any) ?? ''
-      )
+      [
+        OrderResponseStatus.COMPLETED,
+        OrderResponseStatus.CANCELED,
+        OrderResponseStatus.REJECTED,
+        OrderResponseStatus.CANCELLATION_REQUESTED,
+      ].includes((s as any) ?? '')
     ) {
       setStatus('completed');
     }
@@ -165,12 +179,22 @@ function RouteComponent() {
                       : '완료'}
               </p>
             </div>
-            {status === 'pending' ? (
+            {(() => {
+              const raw = order?.status as string | undefined;
+              const canCancel = [
+                OrderResponseStatus.CREATED,
+                OrderResponseStatus.PENDING,
+                OrderResponseStatus.PAYMENT_FAILED,
+              ].includes((raw as any) ?? '');
+              return canCancel;
+            })() ? (
               <Button
                 variant='outline'
                 className='h-9 rounded-full border-[#fbbf24] px-3 text-[12px] font-semibold text-[#92400e] hover:bg-[#fff7ed]'
-                onClick={() => setOpenCancel(true)}>
-                주문 취소
+                onClick={() => setOpenCancel(true)}
+                disabled={cancelMutation.isPending}
+                aria-busy={cancelMutation.isPending}>
+                {cancelMutation.isPending ? '취소 중…' : '주문 취소'}
               </Button>
             ) : null}
           </CardContent>

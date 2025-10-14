@@ -11,5 +11,6 @@ export interface ProductResponse {
   storeId?: number;
   name?: string;
   price?: number;
+  availableQuantity?: number;
   imageUrl?: string;
 }

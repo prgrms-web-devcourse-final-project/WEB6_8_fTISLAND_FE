@@ -12,6 +12,10 @@ export interface UpdateUserRequest {
    * @maxLength 50
    */
   username: string;
-  /** @pattern ^01[0-9]{8,9}$ */
+  /**
+   * @minLength 0
+   * @maxLength 20
+   * @pattern ^01[0-9]{8,9}$
+   */
   phoneNumber?: string;
 }

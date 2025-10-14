@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft } from 'lucide-react';
-import { useGetAllInfinite } from '@/api/generated';
+import { useGetInProgressOrders, useGetCompletedOrdersInfinite } from '@/api/generated';
 import { OrderResponseStatus } from '@/api/generated/model/orderResponseStatus';
 // import { toast } from 'sonner';
 
@@ -43,17 +43,21 @@ function OrderRow({
 }
 
 function RouteComponent() {
-  const ordersQuery = useGetAllInfinite(
-    { size: 10 },
-    {
-      query: {
-        getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
-      },
-    }
-  );
+  // 진행중 주문 (단발성 조회)
+  const ongoingQuery = useGetInProgressOrders();
+  const ongoingRaw =
+    ((ongoingQuery.data as any)?.data?.content?.content as any[] | undefined) ??
+    ((ongoingQuery.data as any)?.data?.content as any[] | undefined) ??
+    [];
 
-  const pages = (ordersQuery.data as any)?.pages ?? [];
-  const allOrders = pages.flatMap((p: any) => p?.data?.content?.content ?? []);
+  // 완료 주문 (무한 스크롤)
+  const completedQuery = useGetCompletedOrdersInfinite({ size: 10 } as any, {
+    query: {
+      getNextPageParam: (lastPage: any) => lastPage?.data?.content?.nextPageToken ?? undefined,
+    },
+  });
+  const completedPages = (completedQuery.data as any)?.pages ?? [];
+  const completedRaw = completedPages.flatMap((p: any) => p?.data?.content?.content ?? []);
 
   const isOngoing = (s?: string) =>
     [
@@ -108,8 +112,8 @@ function RouteComponent() {
     };
   };
 
-  const ongoingOrders = allOrders.filter((o: any) => isOngoing(o?.status)).map(toRow);
-  const completedOrders = allOrders.filter((o: any) => isCompleted(o?.status)).map(toRow);
+  const ongoingOrders = ongoingRaw.filter((o: any) => isOngoing(o?.status)).map(toRow);
+  const completedOrders = completedRaw.filter((o: any) => isCompleted(o?.status)).map(toRow);
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
       <header className='px-4 pb-5 pt-9 text-white sm:px-6 sm:pt-10'>
@@ -154,15 +158,15 @@ function RouteComponent() {
                 <OrderRow item={o} />
               </a>
             ))}
-            {ordersQuery.hasNextPage ? (
+            {completedQuery.hasNextPage ? (
               <div className='flex justify-center pt-2'>
                 <Button
                   variant='outline'
                   size='sm'
                   className='rounded-full'
-                  onClick={() => ordersQuery.fetchNextPage()}
-                  disabled={ordersQuery.isFetchingNextPage}>
-                  {ordersQuery.isFetchingNextPage ? '불러오는 중…' : '더 보기'}
+                  onClick={() => completedQuery.fetchNextPage()}
+                  disabled={completedQuery.isFetchingNextPage}>
+                  {completedQuery.isFetchingNextPage ? '불러오는 중…' : '더 보기'}
                 </Button>
               </div>
             ) : null}

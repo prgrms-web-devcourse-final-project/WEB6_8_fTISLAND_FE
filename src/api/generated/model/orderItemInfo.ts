@@ -8,7 +8,5 @@
 
 export interface OrderItemInfo {
   productId?: number;
-  productName?: string;
   quantity?: number;
-  price?: number;
 }

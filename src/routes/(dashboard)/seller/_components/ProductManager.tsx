@@ -66,7 +66,8 @@ export type ManagedProduct = {
   id: string;
   name: string;
   price: number;
-  quantity: number;
+  // 사용 가능 수량 바인딩
+  quantity: number; // availableQuantity로부터 매핑해 전달
   thumbnail: string;
 };
 
@@ -127,6 +128,9 @@ function ProductRow({
           <div className='flex flex-wrap items-center gap-2 text-[12px] text-[#475569]'>
             <span className='rounded-full bg-[#daf7f4] px-2.5 py-0.5 font-semibold text-[#1f6e6b]'>
               ₩ {product.price.toLocaleString()}
+            </span>
+            <span className='rounded-full bg-[#f1f5f9] px-2.5 py-0.5 font-semibold text-[#334155]'>
+              재고 {new Intl.NumberFormat('ko-KR').format(product.quantity)}개
             </span>
           </div>
         </div>
@@ -354,6 +358,7 @@ function EditProductDialog({
       price: Number(values.price.replace(/,/g, '')),
       imageUrl: values.thumbnail || undefined,
       description: values.description || undefined,
+      newStockQuantity: Number(values.quantity),
       // description은 현재 폼에 없어 undefined 유지
     };
     updateMutation.mutate(

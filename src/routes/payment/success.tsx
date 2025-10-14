@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 export const Route = createFileRoute('/payment/success')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
-      orderId: (search.orderId as string) || (search.merchantUid as string) || '',
+      orderId: (search.orderId as string) || (search.merchantUid as string) || (search.orig as string) || '',
       paymentKey: (search.paymentKey as string) || '',
       amount: (search.amount as string) || '',
     } as { orderId: string; paymentKey: string; amount: string };
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/payment/success')({
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const { orderId, paymentKey } = Route.useSearch();
+  const { orderId, paymentKey, amount } = Route.useSearch();
   const payMutation = usePay({
     mutation: {
       onSuccess: (res: any) => {
@@ -37,8 +37,9 @@ function RouteComponent() {
 
   React.useEffect(() => {
     if (!orderId || !paymentKey) return;
-    payMutation.mutate({ merchantUid: orderId, data: { paymentKey } } as any);
-  }, [orderId, paymentKey]);
+    // 결제 확정 시 서버 스펙에 맞게 필요한 필드(금액 등)를 같이 전달
+    payMutation.mutate({ merchantUid: orderId, data: { paymentKey, amount: Number(amount) || undefined } } as any);
+  }, [orderId, paymentKey, amount]);
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#f8f9fa] px-4'>

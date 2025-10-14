@@ -13,6 +13,7 @@ import { CreateProfileRequestProfileType } from '@/api/generated/model/createPro
 import { toast } from 'sonner';
 import { useKakaoLoader } from '@/lib/useKakaoLoader';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { useAuthStore } from '@/store/auth';
 
 export const Route = createFileRoute('/make-profile/rider/')({
   component: RouteComponent,
@@ -69,7 +70,17 @@ function RouteComponent() {
 
   const uploadMutation = usePresignedUpload();
   const navigate = useNavigate();
-  const createProfileMutation = useCreateProfile();
+  const createProfileMutation = useCreateProfile({
+    mutation: {
+      onSuccess: (res) => {
+        const content = (res as any)?.data?.content ?? (res as any)?.content;
+        const profileId = content?.profileId ?? content?.currentActiveProfileId;
+        try {
+          useAuthStore.getState().setAuth({ currentActiveProfileType: 'RIDER', currentActiveProfileId: profileId });
+        } catch {}
+      },
+    },
+  });
   const updateAreaMutation = useUpdateDeliveryArea();
 
   const onSubmit = useCallback(

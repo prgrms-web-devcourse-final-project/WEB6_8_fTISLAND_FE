@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { usePresignedUpload } from '@/lib/usePresignedUpload';
 import { GeneratePresignedUrlRequestDomain } from '@/api/generated/model/generatePresignedUrlRequestDomain';
 import { useNavigate } from '@tanstack/react-router';
+import { useAuthStore } from '@/store/auth';
 
 export const Route = createFileRoute('/make-profile/customer/')({
   component: RouteComponent,
@@ -43,7 +44,15 @@ function RouteComponent() {
   });
   const createProfileMutation = useCreateProfile({
     mutation: {
-      onSuccess: () => {
+      onSuccess: (res) => {
+        const content = (res as any)?.data?.content ?? (res as any)?.content;
+        const profileId = content?.profileId ?? content?.currentActiveProfileId;
+        try {
+          useAuthStore.getState().setAuth({
+            currentActiveProfileType: 'CUSTOMER',
+            currentActiveProfileId: profileId,
+          });
+        } catch {}
         toast.success('소비자 프로필이 생성되었습니다.');
         navigate({ to: '/customer' });
       },

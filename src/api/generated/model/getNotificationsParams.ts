@@ -8,10 +8,6 @@
 
 export type GetNotificationsParams = {
   /**
-   * 조회할 사용자의 프로필 ID
-   */
-  profileId: number;
-  /**
    * 읽음 상태 필터 (true: 읽음, false: 안읽음, 미포함: 전체)
    */
   isRead?: boolean;

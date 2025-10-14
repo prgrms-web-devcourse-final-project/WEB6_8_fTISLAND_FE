@@ -112,7 +112,7 @@ export function SettlementManager({ summaries }: SettlementManagerProps) {
           <h2 className='text-[15px] font-semibold text-[#1b1b1b]'>정산 관리</h2>
           <p className='text-[12px] text-[#6b7785]'>기간을 선택해 정산 내역을 확인하세요.</p>
         </div>
-        <div className='inline-flex items-center gap-1 rounded-full bg-[#e9f6f5] p-1 text-[12px] font-semibold text-[#1b1b1b]'>
+        <div className='inline-flex items-center gap-1 rounded-full bg-[#e9f6f5] p-1 text-[11px] font-semibold text-[#1b1b1b]'>
           {PERIOD_OPTIONS.map(({ label, value }) => {
             const isActive = period === value;
             return (

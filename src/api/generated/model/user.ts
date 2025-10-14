@@ -22,8 +22,8 @@ export interface User {
   currentActiveProfile?: Profile;
   lastLoginAt?: string;
   profiles?: Profile[];
-  currentActiveProfileType?: UserCurrentActiveProfileType;
   enabled?: boolean;
+  currentActiveProfileType?: UserCurrentActiveProfileType;
   currentActiveProfileId?: number;
   admin?: boolean;
   activeProfileTypes?: UserActiveProfileTypesItem[];

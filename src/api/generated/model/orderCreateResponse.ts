@@ -6,9 +6,7 @@
  * OpenAPI spec version: v1
  */
 
-export type SubscribeParams = {
-  /**
-   * 구독할 사용자의 프로필 ID
-   */
-  profileId: number;
-};
+export interface OrderCreateResponse {
+  orderId?: number;
+  merchantId?: string;
+}

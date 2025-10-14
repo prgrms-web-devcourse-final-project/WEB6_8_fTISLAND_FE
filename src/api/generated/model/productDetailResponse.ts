@@ -12,6 +12,7 @@ export interface ProductDetailResponse {
   name?: string;
   description?: string;
   price?: number;
+  stockTotalQuantity?: number;
+  availableQuantity?: number;
   imageUrl?: string;
-  stockQuantity?: number;
 }

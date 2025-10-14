@@ -17,6 +17,7 @@ import {
 } from '@/api/generated';
 import { toast } from 'sonner';
 import { useGetMyProfile1 } from '@/api/generated';
+import { useRiderLocationSocket } from '@/lib/useRiderLocationSocket';
 
 export const Route = createFileRoute('/(dashboard)/rider/')({
   component: RouteComponent,
@@ -76,6 +77,35 @@ function RouteComponent() {
   }, []);
 
   const [sortBy, setSortBy] = React.useState<SortBy>('distance');
+
+  // 실시간 위치 소켓 연결 (프로필 로드 후)
+  const riderProfileId = (riderProfile as any)?.profileId as number | undefined;
+  const { sendLocation } = useRiderLocationSocket({
+    riderProfileId: riderProfileId ?? 0,
+    autoConnect: Boolean(riderProfileId),
+    endpoint: 'https://api.deliver-anything.shop/ws',
+  });
+
+  // 예시: 위치 전송 (ON 상태일 때만 15초마다)
+  React.useEffect(() => {
+    if (!isOnline || !riderProfileId) return;
+    let watchId: number | null = null;
+    const send = (pos: GeolocationPosition) => {
+      sendLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, timestamp: Date.now() });
+    };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(send);
+      watchId = navigator.geolocation.watchPosition(send, undefined, { enableHighAccuracy: true, maximumAge: 5000 });
+    }
+    const t = setInterval(() => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(send);
+    }, 15_000);
+    return () => {
+      if (watchId != null && navigator.geolocation?.clearWatch) navigator.geolocation.clearWatch(watchId);
+      clearInterval(t);
+    };
+  }, [isOnline, riderProfileId, sendLocation]);
 
   // 진행 중 배달 조회 (1분 폴링)
   const inProgressQuery = useGetInProgressDeliveryInfinite<any>({

@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { useGetMyProfile2, useGetAddress, useCreate } from '@/api/generated';
-import { toast } from 'sonner';
+import { useGetMyProfile2, useGetAddress } from '@/api/generated';
+// import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,8 +15,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
 import AddressManage from '@/components/address/AddressManage';
+import { Dialog, DialogContent } from '@radix-ui/react-dialog';
+import PaymentButton from '@/routes/(dashboard)/customer/_components/PaymentButton';
 
 export const Route = createFileRoute('/(dashboard)/customer/cart/')({
   component: RouteComponent,
@@ -163,6 +164,13 @@ function RouteComponent() {
                         onClick={() => increaseQty(it.productId)}>
                         <Plus className='size-4' />
                       </Button>
+                      <Button
+                        variant='outline'
+                        aria-label='삭제'
+                        className='h-8 w-8 rounded-full border-[#dbe4ec] p-0 text-[#e11d48]'
+                        onClick={() => setDeleteTarget(it)}>
+                        <Trash2 className='size-4' />
+                      </Button>
                     </div>
                   </div>
                 ))
@@ -218,19 +226,20 @@ function RouteComponent() {
             총 주문금액 ₩ {(orderAmount + deliveryFee).toLocaleString()}
             {deficit > 0 ? <span className='ml-2 text-[#FFE08A]'>({deficit.toLocaleString()}원 부족)</span> : null}
           </div>
-          <OrderButton
+          <PaymentButton
+            className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'
+            method='토스페이'
             items={items}
-            amount={totalAmount}
             nickname={profile?.nickname ?? profile?.user?.username}
-            // customerId={profile?.profileId as number | undefined}
+            customerId={profile?.profileId as number | undefined}
             address={[address.base, address.detail].filter(Boolean).join(' ').trim()}
             lat={addressLat}
             lng={addressLng}
             deliveryFee={deliveryFee}
-            storePrice={orderAmount}
             riderNote={riderNote}
-            storeNote={storeNote}
-          />
+            storeNote={storeNote}>
+            토스페이로 간편결제
+          </PaymentButton>
         </div>
       </footer>
 
@@ -248,7 +257,6 @@ function RouteComponent() {
           />
         </DialogContent>
       </Dialog>
-
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -263,128 +271,5 @@ function RouteComponent() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
-}
-
-function OrderButton({
-  items,
-  amount,
-  nickname,
-  customerId,
-  address,
-  lat,
-  lng,
-  deliveryFee,
-  storePrice,
-  riderNote,
-  storeNote,
-}: {
-  items: CartItem[];
-  amount: number;
-  nickname?: string;
-  customerId?: number;
-  address?: string;
-  lat?: number;
-  lng?: number;
-  deliveryFee: number;
-  storePrice: number;
-  riderNote?: string;
-  storeNote?: string;
-}) {
-  const createOrder = useCreate();
-  const [loading, setLoading] = React.useState(false);
-
-  const handleClick = async () => {
-    if (!items.length) return;
-    try {
-      setLoading(true);
-      // 유효성 검사
-      if (!address || lat == null || lng == null) {
-        toast.error('배송지를 확인해 주세요.');
-        return;
-      }
-
-      const baseStoreId = items[0]?.storeId;
-      if (baseStoreId == null) {
-        toast.error('가게 정보가 올바르지 않습니다.');
-        return;
-      }
-      const hasMixedStore = items.some((i) => i.storeId !== baseStoreId);
-      if (hasMixedStore) {
-        toast.error('서로 다른 가게의 상품은 함께 주문할 수 없습니다.');
-        return;
-      }
-
-      // 1) 서버에 주문 생성 (요청 바디 전체 구성)
-      const orderReq = {
-        storeId: baseStoreId,
-        orderItemRequests: items.map((it) => ({ productId: it.productId, price: it.price, quantity: it.qty })),
-        ...(customerId != null ? { customerId } : {}),
-        address,
-        lat,
-        lng,
-        riderNote: riderNote?.trim() || undefined,
-        storeNote: storeNote?.trim() || undefined,
-        totalPrice: storePrice + deliveryFee,
-        storePrice,
-        deliveryPrice: deliveryFee,
-      };
-
-      const createRes = await createOrder.mutateAsync({ data: orderReq } as any);
-      toast.success('주문이 생성되었습니다. 결제를 진행해 주세요.');
-      const content = (createRes as any)?.data?.content ?? (createRes as any)?.content;
-      const merchantUid: string = content?.merchantUid ?? content?.orderId ?? `ORD-${Date.now()}`;
-
-      // 2) 토스 결제창 오픈 (테스트 환경)
-      const clientKey = (import.meta as any)?.env?.VITE_TOSS_KEY as string;
-      if (!clientKey) {
-        toast.error('결제 키가 설정되지 않았습니다.');
-        return;
-      }
-      // 동적 로드
-      await new Promise<void>((resolve, reject) => {
-        const prev = document.getElementById('toss-payments-sdk');
-        if (prev) return resolve();
-        const s = document.createElement('script');
-        s.id = 'toss-payments-sdk';
-        s.src = 'https://js.tosspayments.com/v2/standard';
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error('Failed to load Toss SDK'));
-        document.body.appendChild(s);
-      });
-
-      // @ts-ignore
-      const toss = (window as any).TossPayments?.(clientKey);
-      if (!toss) {
-        toast.error('결제 모듈 초기화에 실패했습니다.');
-        return;
-      }
-
-      // 표준 결제창 실행 (테스트)
-      await toss.requestPayment('카드', {
-        amount,
-        orderId: merchantUid,
-        orderName: items[0]?.name ?? '주문',
-        customerName: nickname ?? '고객',
-        successUrl: window.location.origin + '/payment/success',
-        failUrl: window.location.origin + '/payment/fail',
-      });
-    } catch (e) {
-      console.error(e);
-      toast.error('결제 처리 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Button
-      className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'
-      onClick={handleClick}
-      disabled={loading}
-      aria-busy={loading}>
-      가게배달 주문하기
-    </Button>
   );
 }

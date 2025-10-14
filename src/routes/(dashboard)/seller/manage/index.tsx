@@ -161,8 +161,8 @@ function RouteComponent() {
                 aria-pressed={isActive}
                 className={
                   isActive
-                    ? 'flex flex-col items-center gap-2.5 rounded-[1rem] border border-white/40 bg-white px-4 py-5 text-[#1b1b1b] shadow-[0_20px_44px_-24px_rgba(15,23,42,0.55)] transition-all duration-200'
-                    : 'flex flex-col items-center gap-2.5 rounded-[1rem] border border-transparent bg-white/10 px-4 py-5 text-white/75 transition-all duration-200 hover:border-white/30 hover:bg-white/15 hover:text-white'
+                    ? 'flex flex-col items-center gap-2.5 rounded-[1rem] border border-white/40 bg-white px-3 py-4 text-[#1b1b1b] shadow-[0_20px_44px_-24px_rgba(15,23,42,0.55)] transition-all duration-200'
+                    : 'flex flex-col items-center gap-2.5 rounded-[1rem] border border-transparent bg-white/10 px-3 py-4 text-white/75 transition-all duration-200 hover:border-white/30 hover:bg-white/15 hover:text-white'
                 }>
                 <span
                   className={
@@ -533,7 +533,10 @@ function ProductListWithInfinite({
       id: String(p.productId ?? p.id ?? ''),
       name: p.name ?? '',
       price: Number(p.price ?? 0),
-      quantity: Number(p.stock?.quantity ?? 0),
+      // 재고는 availableQuantity로 바인딩; 폴백으로 stock.quantity
+      quantity: Number(
+        (p.availableQuantity ?? p.availableStock ?? p.remainingQuantity ?? p.stock?.quantity ?? 0) as number
+      ),
       thumbnail: p.imageUrl ?? '',
     }));
   }, [query.data]);
