@@ -19,6 +19,7 @@ import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
 import AddressManage from '@/components/address/AddressManage';
 import { Dialog, DialogContent } from '@radix-ui/react-dialog';
 import PaymentButton from '@/routes/(dashboard)/customer/_components/PaymentButton';
+import PaymentButtonV2 from '@/routes/(dashboard)/customer/_components/PaymentButtonV2';
 
 export const Route = createFileRoute('/(dashboard)/customer/cart/')({
   component: RouteComponent,
@@ -226,20 +227,36 @@ function RouteComponent() {
             총 주문금액 ₩ {(orderAmount + deliveryFee).toLocaleString()}
             {deficit > 0 ? <span className='ml-2 text-[#FFE08A]'>({deficit.toLocaleString()}원 부족)</span> : null}
           </div>
-          <PaymentButton
-            className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'
-            method='토스페이'
-            items={items}
-            nickname={profile?.nickname ?? profile?.user?.username}
-            customerId={profile?.profileId as number | undefined}
-            address={[address.base, address.detail].filter(Boolean).join(' ').trim()}
-            lat={addressLat}
-            lng={addressLng}
-            deliveryFee={deliveryFee}
-            riderNote={riderNote}
-            storeNote={storeNote}>
-            토스페이로 간편결제
-          </PaymentButton>
+          <div className='flex w-full gap-2'>
+            <PaymentButton
+              className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'
+              method='토스페이'
+              items={items}
+              nickname={profile?.nickname ?? profile?.user?.username}
+              customerId={profile?.profileId as number | undefined}
+              address={[address.base, address.detail].filter(Boolean).join(' ').trim()}
+              lat={addressLat}
+              lng={addressLng}
+              deliveryFee={deliveryFee}
+              riderNote={riderNote}
+              storeNote={storeNote}>
+              토스 간편결제
+            </PaymentButton>
+            <PaymentButtonV2
+              className='h-11 flex-1 rounded-full bg-black text-[13px] font-semibold text-white hover:bg-black/90'
+              // method='TOSSPAY'
+              items={items}
+              nickname={profile?.nickname ?? profile?.user?.username}
+              customerId={profile?.profileId as number | undefined}
+              address={[address.base, address.detail].filter(Boolean).join(' ').trim()}
+              lat={addressLat}
+              lng={addressLng}
+              deliveryFee={deliveryFee}
+              riderNote={riderNote}
+              storeNote={storeNote}>
+              토스페이(v2)
+            </PaymentButtonV2>
+          </div>
         </div>
       </footer>
 

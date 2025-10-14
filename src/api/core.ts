@@ -1,7 +1,5 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { toast } from 'sonner';
-import { refreshToken as callRefresh } from '@/api/generated';
-import type { RefreshTokenRequest } from '@/api/generated/model/refreshTokenRequest';
 
 // Resolve API base URL from environment variables
 const { VITE_API_URL, VITE_SERVER_URL } = (import.meta as any).env ?? {};
@@ -37,19 +35,7 @@ function setAccessToken(token: string | null | undefined): void {
   }
 }
 
-function getRefreshToken(): string | null {
-  try {
-    if (typeof window === 'undefined') return null;
-    const raw = localStorage.getItem('auth');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const state = parsed?.state ?? parsed;
-    const token = state?.refreshToken as string | undefined;
-    return token ?? null;
-  } catch {
-    return null;
-  }
-}
+// refreshToken 은 이제 HttpOnly 쿠키로만 전달됩니다. 로컬스토리지에서 읽지 않습니다.
 
 function getDeviceId(): string {
   try {
@@ -189,11 +175,9 @@ export const api = createApiClient();
 let refreshingPromise: Promise<unknown> | null = null;
 function triggerRefresh(): Promise<unknown> {
   if (!refreshingPromise) {
-    const rt = getRefreshToken();
-    if (!rt) {
-      return Promise.reject(new Error('Missing refresh token'));
-    }
-    refreshingPromise = callRefresh({ refreshToken: rt } as RefreshTokenRequest)
+    // HttpOnly 쿠키 기반 리프레시: 본문 없이 호출 (서버가 쿠키에서 RT를 읽음)
+    refreshingPromise = api
+      .request({ method: 'POST', url: '/api/v1/auth/refresh', withCredentials: true, data: {} })
       .then((res: any) => {
         // Try to persist access token from headers or response body
         try {

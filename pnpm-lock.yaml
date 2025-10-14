@@ -65,6 +65,9 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@tosspayments/tosspayments-sdk':
+        specifier: ^2.4.0
+        version: 2.4.0
       axios:
         specifier: ^1.12.2
         version: 1.12.2(debug@4.4.3)
@@ -1564,6 +1567,9 @@ packages:
   '@tanstack/virtual-file-routes@1.131.2':
     resolution: {integrity: sha512-VEEOxc4mvyu67O+Bl0APtYjwcNRcL9it9B4HKbNgcBTIOEalhk+ufBl4kiqc8WP1sx1+NAaiS+3CcJBhrqaSRg==}
     engines: {node: '>=12'}
+
+  '@tosspayments/tosspayments-sdk@2.4.0':
+    resolution: {integrity: sha512-Ljs9QCl45+mehyykPcWN2kh562Uo5a4kQIqentKvdv+YQ+yz6L2F2Kgph1vJcoQKk8vZKHckBezlmFW6MGl8Ww==}
 
   '@types/es-aggregate-error@1.0.6':
     resolution: {integrity: sha512-qJ7LIFp06h1QE1aVxbVd+zJP2wdaugYXYfd6JxsyRMrYHaxb6itXPogW2tz+ylUJ1n1b+JF1PHyYCfYHm0dvUg==}
@@ -4985,6 +4991,8 @@ snapshots:
   '@tanstack/table-core@8.21.3': {}
 
   '@tanstack/virtual-file-routes@1.131.2': {}
+
+  '@tosspayments/tosspayments-sdk@2.4.0': {}
 
   '@types/es-aggregate-error@1.0.6':
     dependencies:
