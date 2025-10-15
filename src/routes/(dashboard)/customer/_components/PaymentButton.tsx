@@ -137,25 +137,28 @@ export default function PaymentButton({
 
       const createRes = await createOrder.mutateAsync({ data: orderReq } as any);
       const content = (createRes as any)?.data?.content ?? (createRes as any)?.content;
+      const serverOrderId: string | undefined =
+        (content?.orderId != null ? String(content.orderId) : undefined) ||
+        (content?.id != null ? String(content.id) : undefined);
       const merchantUid: string | undefined =
-        (typeof content === 'string' ? (content as string) : undefined) ||
         (content?.merchantUid as string | undefined) ||
-        (content?.orderId as string | undefined) ||
-        (content?.id ? String(content.id) : undefined);
+        (content?.merchantId as string | undefined) ||
+        (typeof content === 'string' ? (content as string) : undefined);
       toast.success('주문이 생성되었습니다. 결제를 진행해 주세요.');
-      if (!merchantUid) {
+      if (!merchantUid || !serverOrderId) {
         console.error('[order] missing merchantUid in create response', content);
-        toast.error('주문 식별자(merchantUid)를 찾을 수 없어 결제를 진행할 수 없습니다.');
+        toast.error('주문 식별자(orderId/merchantUid)를 찾을 수 없어 결제를 진행할 수 없습니다.');
         return;
       }
 
-      const sanitizeOrderId = (raw: string): string => {
-        const cleaned = String(raw).replace(/[^0-9a-zA-Z-_]/g, '_');
+      const buildTossOrderId = (raw: string): string => {
+        const base = `order_${String(raw)}`;
+        const cleaned = base.replace(/[^0-9a-zA-Z-_]/g, '_');
         let id = cleaned.slice(0, 64);
         if (id.length < 6) id = (id + '_'.repeat(6)).slice(0, 6);
         return id;
       };
-      const orderId = sanitizeOrderId(merchantUid);
+      const orderId = buildTossOrderId(String(serverOrderId));
       const env = ((import.meta as any)?.env ?? {}) as Record<string, string | undefined>;
       const clientKey =
         (env.VITE_TOSS_CLIENT_KEY as string | undefined) ||
@@ -186,13 +189,12 @@ export default function PaymentButton({
       const v1 = toV1EasyPay(method);
       await client.requestPayment(v1.payMethod, {
         amount: totalAmount,
-        easyPay: 'NAVERPAY',
-        flowMode: 'DIRECT',
+        flowMode: 'DEFAULT',
         orderId,
         orderName: items[0]?.name ?? '주문',
         customerName: nickname ?? '고객',
-        successUrl: `${window.location.origin}/payment/success?orderId=${encodeURIComponent(merchantUid ?? '')}`,
-        failUrl: `${window.location.origin}/payment/fail?orderId=${encodeURIComponent(merchantUid ?? '')}`,
+        successUrl: `${window.location.origin}/payment/success?merchantUid=${encodeURIComponent(merchantUid ?? '')}`,
+        failUrl: `${window.location.origin}/payment/fail?merchantUid=${encodeURIComponent(merchantUid ?? '')}`,
         ...(v1.easyPay ? { easyPay: v1.easyPay } : {}),
       });
       return;

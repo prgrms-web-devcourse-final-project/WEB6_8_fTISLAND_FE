@@ -42,8 +42,8 @@ export default function WidgetPaymentButton({
   // Toss widget refs/state
   const widgetRef = React.useRef<any>(null);
   const amountRef = React.useRef<number>(0);
-  const sanitizedOrderIdRef = React.useRef<string>('');
-  const rawOrderIdRef = React.useRef<string>('');
+  const orderIdRef = React.useRef<string>('');
+  const merchantUidRef = React.useRef<string>('');
 
   const customerKey = React.useMemo(() => {
     if (customerId) return `customer-${customerId}`;
@@ -174,12 +174,12 @@ export default function WidgetPaymentButton({
     try {
       const w = await ensureWidget();
       await w.requestPayment({
-        orderId: sanitizedOrderIdRef.current,
+        orderId: orderIdRef.current,
         amount: amountRef.current,
         orderName: items[0]?.name ?? '주문',
         customerName: nickname ?? '고객',
-        successUrl: `${window.location.origin}/payment/success?orderId=${encodeURIComponent(rawOrderIdRef.current)}`,
-        failUrl: `${window.location.origin}/payment/fail?orderId=${encodeURIComponent(rawOrderIdRef.current)}`,
+        successUrl: `${window.location.origin}/payment/success?merchantUid=${encodeURIComponent(merchantUidRef.current)}`,
+        failUrl: `${window.location.origin}/payment/fail?merchantUid=${encodeURIComponent(merchantUidRef.current)}`,
       });
     } catch (e: any) {
       const msg = e?.message ?? '결제 요청 중 오류가 발생했습니다.';
@@ -228,26 +228,28 @@ export default function WidgetPaymentButton({
 
       const res = await createOrder.mutateAsync({ data: orderReq } as any);
       const content = (res as any)?.data?.content ?? (res as any)?.content;
+      const serverOrderId: string | undefined =
+        (content?.orderId != null ? String(content.orderId) : undefined) ||
+        (content?.id != null ? String(content.id) : undefined);
       const merchantUid: string | undefined =
-        (typeof content === 'string' ? (content as string) : undefined) ||
         (content?.merchantUid as string | undefined) ||
-        (content?.orderId as string | undefined) ||
-        (content?.id ? String(content.id) : undefined);
-      if (!merchantUid) {
-        toast.error('주문 식별자가 없어 결제를 진행할 수 없습니다.');
+        (content?.merchantId as string | undefined) ||
+        (typeof content === 'string' ? (content as string) : undefined);
+      if (!merchantUid || !serverOrderId) {
+        toast.error('주문 식별자(orderId/merchantUid)가 없어 결제를 진행할 수 없습니다.');
         return;
       }
 
-      const sanitizeOrderId = (raw: string): string => {
-        const cleaned = String(raw).replace(/[^0-9a-zA-Z-_]/g, '_');
+      amountRef.current = totalAmount;
+      const buildTossOrderId = (raw: string): string => {
+        const base = `order_${String(raw)}`;
+        const cleaned = base.replace(/[^0-9a-zA-Z-_]/g, '_');
         let id = cleaned.slice(0, 64);
         if (id.length < 6) id = (id + '_'.repeat(6)).slice(0, 6);
         return id;
       };
-
-      amountRef.current = totalAmount;
-      sanitizedOrderIdRef.current = sanitizeOrderId(merchantUid);
-      rawOrderIdRef.current = merchantUid;
+      orderIdRef.current = buildTossOrderId(String(serverOrderId));
+      merchantUidRef.current = merchantUid;
       setOpen(true);
     } catch (e) {
       console.error(e);

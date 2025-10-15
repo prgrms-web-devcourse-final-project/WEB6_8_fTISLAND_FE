@@ -85,7 +85,7 @@ function RouteComponent() {
 
   const onSubmit = useCallback(
     async (data: RiderProfileFormValues) => {
-      await createProfileMutation.mutateAsync({
+      const res = await createProfileMutation.mutateAsync({
         data: {
           profileType: CreateProfileRequestProfileType.RIDER,
           profileData: {
@@ -100,6 +100,14 @@ function RouteComponent() {
           },
         },
       });
+      // 이제 막 생성된 라이더 프로필로 서버가 currentActiveProfile을 전환할 시간을 고려해 순서 보장
+      try {
+        const content = (res as any)?.data?.content ?? (res as any)?.content;
+        const pid = content?.profileId ?? content?.currentActiveProfileId;
+        if (pid) {
+          useAuthStore.getState().setAuth({ currentActiveProfileType: 'RIDER', currentActiveProfileId: pid });
+        }
+      } catch {}
       if (data.serviceArea?.trim()) {
         await updateAreaMutation.mutateAsync({ data: { deliveryArea: data.serviceArea.trim() } } as any);
       }
@@ -331,12 +339,8 @@ function RouteComponent() {
               onChange={(text) => setValue('serviceArea', text, { shouldDirty: true })}
               onApply={async (text) => {
                 if (!text?.trim()) return;
-                try {
-                  await updateAreaMutation.mutateAsync({ data: { deliveryArea: text.trim() } } as any);
-                  toast.success('배달 가능 지역이 적용되었습니다.');
-                } catch (e: any) {
-                  toast.error(e?.message ?? '배달 가능 지역 적용에 실패했습니다.');
-                }
+                // 프로필 생성 전에는 서버에 저장하지 않고, 제출 시에 함께 저장합니다.
+                toast.message('배달 가능 지역이 선택되었습니다. 프로필 제출 시 저장됩니다.');
               }}
             />
           </CardContent>

@@ -84,6 +84,10 @@ function RouteComponent() {
         imageUrl: content.imageUrl,
         category: content.category,
       });
+      // 서버의 상점 상태(OPEN/CLOSED)에 따라 스위치 초기값을 동기화
+      if (typeof content.status === 'string') {
+        setIsOpen(String(content.status).toUpperCase() === 'OPEN');
+      }
     }
   }, [storeQuery.data, setSelectedStore]);
 

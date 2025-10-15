@@ -46,6 +46,7 @@ async function fetchToken(url: string, body: unknown): Promise<LoginResponse> {
   const response = await api.post<LoginResponse>(url, body, { withCredentials: true });
   // Authorization: Bearer xxx
   const auth = response.headers?.['authorization'] || response.headers?.['Authorization'];
+  const deviceId = response.headers?.['x-device-id'] || (response.headers as any)?.['X-Device-ID'];
   if (auth && typeof auth === 'string') {
     const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : auth;
     try {
@@ -63,6 +64,12 @@ async function fetchToken(url: string, body: unknown): Promise<LoginResponse> {
     } catch {
       // ignore
     }
+  }
+  // Persist server-issued X-Device-ID if provided
+  if (deviceId && typeof deviceId === 'string') {
+    try {
+      localStorage.setItem('device-id', deviceId);
+    } catch {}
   }
   return response.data;
 }

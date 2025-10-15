@@ -115,23 +115,25 @@ export default function PaymentButtonV2({
       } as any;
       const createRes = await createOrder.mutateAsync({ data: orderReq } as any);
       const content = (createRes as any)?.data?.content ?? (createRes as any)?.content;
+      const serverOrderId: string | undefined =
+        (content?.orderId != null ? String(content.orderId) : undefined) ||
+        (content?.id != null ? String(content.id) : undefined);
       const merchantUid: string | undefined =
-        (typeof content === 'string' ? (content as string) : undefined) ||
         (content?.merchantUid as string | undefined) ||
-        (content?.orderId as string | undefined) ||
-        (content?.id ? String(content.id) : undefined);
-      if (!merchantUid) {
-        toast.error('주문 식별자가 없어 결제를 진행할 수 없습니다.');
+        (content?.merchantId as string | undefined) ||
+        (typeof content === 'string' ? (content as string) : undefined);
+      if (!merchantUid || !serverOrderId) {
+        toast.error('주문 식별자(orderId/merchantUid)가 없어 결제를 진행할 수 없습니다.');
         return;
       }
-
-      const sanitizeOrderId = (raw: string): string => {
-        const cleaned = String(raw).replace(/[^0-9a-zA-Z-_]/g, '_');
+      const buildTossOrderId = (raw: string): string => {
+        const base = `order_${String(raw)}`;
+        const cleaned = base.replace(/[^0-9a-zA-Z-_]/g, '_');
         let id = cleaned.slice(0, 64);
         if (id.length < 6) id = (id + '_'.repeat(6)).slice(0, 6);
         return id;
       };
-      const orderId = sanitizeOrderId(merchantUid);
+      const orderId = buildTossOrderId(String(serverOrderId));
 
       // 2) v2 SDK 초기화 및 결제 요청
       const env = ((import.meta as any)?.env ?? {}) as Record<string, string | undefined>;
@@ -153,8 +155,15 @@ export default function PaymentButtonV2({
         orderId,
         orderName: items[0]?.name ?? '주문',
         customerName: nickname ?? '고객',
-        successUrl: `${window.location.origin}/payment/success?orderId=${encodeURIComponent(merchantUid)}`,
-        failUrl: `${window.location.origin}/payment/fail?orderId=${encodeURIComponent(merchantUid)}`,
+        successUrl: `${window.location.origin}/payment/success?merchantUid=${encodeURIComponent(merchantUid)}`,
+        failUrl: `${window.location.origin}/payment/fail?merchantUid=${encodeURIComponent(merchantUid)}`,
+        card: {
+          useEscrow: false,
+          flowMode: 'DIRECT',
+          useCardPoint: false,
+          useAppCardOnly: false,
+          easyPay: '토스페이',
+        },
       } as any;
 
       try {

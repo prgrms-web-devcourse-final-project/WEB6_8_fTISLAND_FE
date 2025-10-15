@@ -17,7 +17,8 @@ import { useGetNotificationsInfinite, useMarkAsRead } from '@/api/generated';
 import type { GetNotificationsParams } from '@/api/generated/model/getNotificationsParams';
 import type { StoreSearchRequest } from '@/api/generated/model/storeSearchRequest';
 import { useQueryClient } from '@tanstack/react-query';
-import { getGetUnreadCountQueryKey, useSubscribe } from '@/api/generated';
+import { getGetUnreadCountQueryKey } from '@/api/generated';
+import { useNotificationsSSE } from '@/lib/useNotificationsSSE';
 
 export const Route = createFileRoute('/(dashboard)/customer/')({
   component: RouteComponent,
@@ -138,16 +139,18 @@ function RouteComponent() {
   const qc = useQueryClient();
 
   // SSE 구독: 최신 스펙에 맞게 파라미터 없이 options만 전달
-  useSubscribe({
-    query: {
-      enabled: !!profileId,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      select: (res: any) => res,
-      onSuccess: () => {},
-      onError: () => {},
-    },
-  } as any);
+  // useSubscribe(axios 기반)은 SSE 스트림과 맞지 않아 중복 연결/타임아웃을 유발할 수 있어 비활성화
+  // 브라우저 SSE: 서버 푸시를 받으면 알림 목록/카운트 즉시 무효화
+  useNotificationsSSE(
+    (() => {
+      try {
+        return localStorage.getItem('device-id') ?? undefined;
+      } catch {
+        return undefined;
+      }
+    })(),
+    { autoInvalidate: true }
+  );
   React.useEffect(() => {
     if (!profileId) return;
     // SSE 자체는 orval의 customInstance를 통해 열리고, 서버 푸시 후 캐시 무효화로 반영
@@ -171,6 +174,7 @@ function RouteComponent() {
         unreadCount={unreadCount}
         onClickAddress={() => setAddressOpen(true)}
         onClickNotifications={() => setNotificationsOpen(true)}
+        onClickCart={() => navigate({ to: '/customer/cart' })}
       />
 
       <main className='flex-1 space-y-5 overflow-y-auto rounded-t-[1.5rem] bg-[#f8f9fa] px-4 pb-6 pt-6 outline-[1.5px] outline-[#2ac1bc]/15 sm:space-y-6 sm:rounded-t-[1.75rem] sm:px-6 sm:pb-7 sm:pt-7'>

@@ -6,28 +6,28 @@ export const Route = createFileRoute('/payment/fail')({
     return {
       code: (search.code as string) || '',
       message: (search.message as string) || '결제가 취소되었거나 실패했습니다.',
-      orderId: (search.orderId as string) || (search.merchantUid as string) || '',
-    } as { code: string; message: string; orderId?: string };
+      merchantUid: (search.merchantUid as string) || (search.orderId as string) || '',
+    } as { code: string; message: string; merchantUid?: string };
   },
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const { message, orderId } = Route.useSearch();
+  const { message, merchantUid } = Route.useSearch();
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#f8f9fa] px-4'>
       <div className='text-[14px] font-semibold text-[#1b1b1b]'>결제가 완료되지 않았습니다</div>
       <div className='mt-2 max-w-[24rem] text-center text-[12px] text-[#6b7785]'>{message}</div>
       <div className='mt-4 flex gap-2'>
-        {orderId ? (
+        {merchantUid ? (
           <Button
             className='h-10 rounded-full bg-[#2ac1bc] px-4 text-[13px] text-white hover:bg-[#21a9a4]'
             onClick={() =>
               navigate({
                 to: '/customer/orders/$orderId',
-                params: { orderId: String(orderId) },
+                params: { orderId: String(merchantUid) },
                 search: { status: 'pending' },
               })
             }>

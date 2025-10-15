@@ -55,8 +55,9 @@ function RouteComponent() {
   const addressQuery = useGetAddress(defaultAddressId ?? 0, { query: { enabled: !!defaultAddressId } } as any);
   const latRaw = (addressQuery.data as any)?.data?.content?.latitude as number | undefined;
   const lngRaw = (addressQuery.data as any)?.data?.content?.longitude as number | undefined;
-  const lat = Number.isFinite(latRaw) ? Math.trunc(latRaw as number) : Math.trunc(37.5665);
-  const lng = Number.isFinite(lngRaw) ? Math.trunc(lngRaw as number) : Math.trunc(126.978);
+  // 소수점 포함 좌표 그대로 사용 (기본값은 서울시청 좌표)
+  const lat = Number.isFinite(latRaw as any) ? (latRaw as number) : 37.5665;
+  const lng = Number.isFinite(lngRaw as any) ? (lngRaw as number) : 126.978;
   const req: StoreSearchRequest = {
     lat,
     lng,
@@ -79,7 +80,15 @@ function RouteComponent() {
     enabled: !!selectedCategoryId,
     refetchOnWindowFocus: false,
   });
-  const stores = ((storesQuery.data as any)?.data?.content?.stores ?? []) as any[];
+  const stores = React.useMemo(() => {
+    const payload: any = storesQuery.data as any;
+    const c = payload?.content;
+    if (!c) return [] as any[];
+    if (Array.isArray(c)) return c as any[];
+    if (Array.isArray(c.content)) return c.content as any[];
+    if (Array.isArray(c.stores)) return c.stores as any[];
+    return [] as any[];
+  }, [storesQuery.data]);
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
@@ -110,7 +119,7 @@ function RouteComponent() {
         <div className='mb-3 space-y-2'>
           <div className='text-[12px] font-semibold text-[#6b7785]'>카테고리 선택</div>
           <div className='no-scrollbar flex gap-2 overflow-x-auto'>
-            {apiCategories.map((c) => {
+            {apiCategories?.map((c) => {
               const active = c.name === category;
               return (
                 <button
@@ -138,34 +147,48 @@ function RouteComponent() {
           </Button>
         </div>
         <div className='max-h-[calc(100dvh-220px)] space-y-3 overflow-y-auto sm:max-h-[calc(100dvh-240px)]'>
-          {stores.map((s: any) => (
-            <Card
-              key={s.storeId}
-              className='cursor-pointer border-none bg-white shadow-sm'
-              onClick={() => navigate({ to: '/customer/store/$storeId', params: { storeId: String(s.storeId) } })}>
-              <CardContent className='flex gap-3 px-4 py-3'>
-                <div className='flex size-16 items-center justify-center rounded-2xl bg-[#e2f6f5] text-[#1f6e6b]'>
-                  {s.name?.slice(0, 2) ?? '가게'}
-                </div>
-                <div className='flex-1 space-y-1'>
-                  <p className='text-[14px] font-semibold text-[#1b1b1b]'>{s.name}</p>
-                  <p className='text-[12px] text-[#6b7785]'>{s.distanceText ?? ''}</p>
-                  <div className='flex items-center gap-2 text-[12px] text-[#1f6e6b]'>
-                    <span className='inline-flex items-center gap-1 rounded-full bg-[#2ac1bc]/10 px-2 py-0.5'>
-                      <Star className='size-3 text-[#2ac1bc]' aria-hidden />
-                      {s.rating ?? 'NEW'}
-                    </span>
-                    {s.tags?.length ? <span>#{s.tags.join(' #')}</span> : null}
+          {stores?.map((s: any) => {
+            const storeId = s.storeId ?? s.id;
+            const distanceText = typeof s.distance === 'number' ? `${s.distance.toFixed(1)}km` : (s.distanceText ?? '');
+            const feeText = typeof s.deliveryFee === 'number' ? `배달비 ₩ ${s.deliveryFee.toLocaleString()}` : '';
+            return (
+              <Card
+                key={storeId}
+                className='cursor-pointer border-none bg-white shadow-sm'
+                onClick={() => navigate({ to: '/customer/store/$storeId', params: { storeId: String(storeId) } })}>
+                <CardContent className='flex gap-3 px-4 py-3'>
+                  <div className='flex size-16 items-center justify-center overflow-hidden rounded-2xl bg-[#e2f6f5] text-[#1f6e6b]'>
+                    {s.imageUrl ? (
+                      <img src={s.imageUrl} alt={s.name} className='size-16 object-cover' />
+                    ) : (
+                      (s.name?.slice(0, 2) ?? '가게')
+                    )}
                   </div>
-                </div>
-                <Button
-                  size='sm'
-                  className='h-8 rounded-full bg-[#2ac1bc] px-3 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'>
-                  주문하기
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className='flex-1 space-y-1'>
+                    <p className='text-[14px] font-semibold text-[#1b1b1b]'>{s.name}</p>
+                    <p className='text-[12px] text-[#6b7785]'>{s.roadAddr || s.address || ''}</p>
+                    <div className='flex flex-col gap-2 text-[12px] text-[#1f6e6b]'>
+                      {distanceText ? (
+                        <span className='inline-flex w-24 items-center gap-1 rounded-full bg-[#2ac1bc]/10 px-2 py-0.5'>
+                          <Star className='size-3 text-[#2ac1bc]' aria-hidden />
+                          {distanceText}
+                        </span>
+                      ) : null}
+                      <div className='flex items-center gap-2'>
+                        {feeText ? <span className='text-[#64748b]'>{feeText}</span> : null}
+                        {s.category ? <span className='text-[#64748b]'>· {s.category}</span> : null}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    size='sm'
+                    className='h-8 rounded-full bg-[#2ac1bc] px-3 text-[12px] font-semibold text-white hover:bg-[#1ba7a1]'>
+                    주문하기
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
           {/* 카테고리 페이지는 제한된 개수 노출. 더보기는 검색 페이지로 유도 가능 */}
         </div>
       </main>

@@ -10,6 +10,7 @@ interface CustomerHeaderProps {
   headlineLines?: [string, string];
   unreadCount?: number;
   onClickNotifications?: () => void;
+  onClickCart?: () => void;
 }
 
 export function CustomerHeader({
@@ -20,6 +21,7 @@ export function CustomerHeader({
   headlineLines = ['동네 가게에서 필요한 걸', '지금 바로 받아보세요'],
   unreadCount = 0,
   onClickNotifications,
+  onClickCart,
 }: CustomerHeaderProps) {
   return (
     <header className='relative px-4 pb-6 pt-9 text-white sm:px-6 sm:pt-10'>
@@ -56,7 +58,8 @@ export function CustomerHeader({
           <Button
             variant='ghost'
             size='icon'
-            className='size-9 rounded-full border border-white/30 text-white hover:bg-white/10'>
+            className='size-9 rounded-full border border-white/30 text-white hover:bg-white/10'
+            onClick={onClickCart}>
             <ShoppingBag className='size-4' aria-hidden />
             <span className='sr-only'>장바구니</span>
           </Button>

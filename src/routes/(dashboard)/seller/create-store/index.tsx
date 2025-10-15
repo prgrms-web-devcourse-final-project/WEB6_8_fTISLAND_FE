@@ -133,7 +133,7 @@ function RouteComponent() {
                 <SelectValue placeholder='카테고리를 선택하세요' />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((c) => (
+                {categories?.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)} className='text-[13px]'>
                     {c.name}
                   </SelectItem>

@@ -7,7 +7,13 @@ import { Label } from '@/components/ui/label';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { SellerFooterNav } from '../_components/SellerFooterNav';
 import { User, Store, Bike } from 'lucide-react';
-import { useGetAvailableProfiles, useSwitchProfile, useGetMyInfo, useChangePassword } from '@/api/generated';
+import {
+  useGetAvailableProfiles,
+  useSwitchProfile,
+  useGetMyInfo,
+  useChangePassword,
+  useGetMyProfile,
+} from '@/api/generated';
 import type { ChangePasswordRequest } from '@/api/generated/model/changePasswordRequest';
 import { toast } from 'sonner';
 import useLogout from '@/routes/login/_hooks/useLogout';
@@ -130,11 +136,15 @@ function RouteComponent() {
     query: { enabled: !!effectiveStoreId, staleTime: 10_000, refetchOnWindowFocus: false },
   } as any);
 
-  // 내 정보 조회 및 표시값
+  // 판매자 메인과 동일한 데이터 소스 사용
   const myInfoQuery = useGetMyInfo();
   const my = (myInfoQuery.data as any)?.data?.content;
+  const sellerProfileQuery = useGetMyProfile({ query: { staleTime: 10_000, refetchOnWindowFocus: false } } as any);
+  const sellerProfile = ((sellerProfileQuery.data as any)?.data?.content ?? undefined) as
+    | { nickname?: string; profileImageUrl?: string; user?: { username?: string } }
+    | undefined;
   const displayName =
-    my?.currentProfileDetail?.nickname ?? my?.username ?? (my as any)?.name ?? FALLBACK_PROFILE.nickname;
+    sellerProfile?.nickname ?? sellerProfile?.user?.username ?? (my as any)?.name ?? FALLBACK_PROFILE.nickname;
   const addressText = (storeQuery.data as any)?.data?.content?.roadAddr ?? FALLBACK_PROFILE.address;
 
   const changePasswordMutation = useChangePassword({
@@ -155,9 +165,9 @@ function RouteComponent() {
       <main className='flex-1 space-y-5 overflow-y-auto px-4 pb-28 pt-8 sm:px-6 sm:pb-32 sm:pt-10'>
         <section className='flex flex-col items-center gap-4 text-center'>
           <div className='relative flex size-24 items-center justify-center rounded-full bg-[#e0f7f5] text-[24px] font-extrabold text-[#1ba7a1] shadow-[0_18px_40px_-32px_rgba(15,23,42,0.35)]'>
-            {my?.currentProfileDetail?.profileImageUrl ? (
+            {sellerProfile?.profileImageUrl ? (
               <img
-                src={my.currentProfileDetail.profileImageUrl}
+                src={sellerProfile.profileImageUrl}
                 alt='프로필 이미지'
                 className='size-full rounded-full object-cover'
               />

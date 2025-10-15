@@ -244,7 +244,7 @@ function RouteComponent() {
             </PaymentButton>
             <PaymentButtonV2
               className='h-11 flex-1 rounded-full bg-black text-[13px] font-semibold text-white hover:bg-black/90'
-              // method='TOSSPAY'
+              method='토스페이'
               items={items}
               nickname={profile?.nickname ?? profile?.user?.username}
               customerId={profile?.profileId as number | undefined}

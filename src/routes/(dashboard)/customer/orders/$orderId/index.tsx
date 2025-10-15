@@ -5,9 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
 import {
-  useGet,
+  useGet1,
   useCancel,
-  getGetQueryKey,
+  getGet1QueryKey,
   getGetInProgressOrdersInfiniteQueryKey,
   getGetCompletedOrdersInfiniteQueryKey,
 } from '@/api/generated';
@@ -43,7 +43,7 @@ function RouteComponent() {
   const [openCancel, setOpenCancel] = React.useState(false);
   const { register, handleSubmit, reset } = useForm<{ cancelReason: string }>({ defaultValues: { cancelReason: '' } });
   const numericOrderId = Number(orderId);
-  const orderQuery = useGet(numericOrderId, { query: { enabled: Number.isFinite(numericOrderId) } } as any);
+  const orderQuery = useGet1(numericOrderId, { query: { enabled: Number.isFinite(numericOrderId) } } as any);
   const queryClient = useQueryClient();
   const cancelMutation = useCancel({
     mutation: {
@@ -51,7 +51,7 @@ function RouteComponent() {
         toast.success('주문을 취소했어요');
         // 상세/목록 쿼리 무효화로 즉시 갱신
         if (Number.isFinite(numericOrderId)) {
-          queryClient.invalidateQueries({ queryKey: getGetQueryKey(numericOrderId) as any });
+          queryClient.invalidateQueries({ queryKey: getGet1QueryKey(numericOrderId) as any });
         }
         queryClient.invalidateQueries({ queryKey: getGetInProgressOrdersInfiniteQueryKey() as any });
         queryClient.invalidateQueries({ queryKey: getGetCompletedOrdersInfiniteQueryKey(undefined) as any });

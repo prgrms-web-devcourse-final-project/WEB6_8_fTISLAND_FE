@@ -42,17 +42,22 @@ function getDeviceId(): string {
     if (typeof window === 'undefined') return 'web';
     const key = 'device-id';
     const existing = localStorage.getItem(key);
-    const id: string =
-      existing ??
-      ((crypto as any)?.randomUUID
-        ? (crypto as any).randomUUID()
-        : `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-    if (!existing) {
-      localStorage.setItem(key, id);
-    }
-    return id;
+    if (existing && typeof existing === 'string') return existing;
+    const generated = (crypto as any)?.randomUUID?.() ?? `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    localStorage.setItem(key, generated);
+    return generated;
   } catch {
     return 'web';
+  }
+}
+
+function setDeviceId(id: string | null | undefined): void {
+  try {
+    if (typeof window === 'undefined') return;
+    if (!id || typeof id !== 'string') return;
+    localStorage.setItem('device-id', id);
+  } catch {
+    // ignore
   }
 }
 
@@ -98,6 +103,11 @@ function createApiClient(): AxiosInstance {
         if (hdr && typeof hdr === 'string') {
           const token = hdr.toLowerCase().startsWith('bearer ') ? hdr.slice(7) : hdr;
           setAccessToken(token);
+        }
+        // Persist server-issued device id when provided
+        const deviceHdr = (response.headers as any)?.['x-device-id'] ?? (response.headers as any)?.['X-Device-ID'];
+        if (typeof deviceHdr === 'string' && deviceHdr) {
+          setDeviceId(deviceHdr);
         }
         // If server sets Set-Cookie for refresh token, withCredentials already ensures cookie persistence
       } catch {

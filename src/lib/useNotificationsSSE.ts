@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { getGetUnreadCountQueryKey } from '@/api/generated';
 
 type NotificationEvent = {
   id: string;
@@ -9,9 +11,15 @@ type NotificationEvent = {
   createdAt: string;
 };
 
-export function useNotificationsSSE(deviceId: string | undefined) {
+type SSEOptions = {
+  autoInvalidate?: boolean;
+  onEvent?: (ev: NotificationEvent) => void;
+};
+
+export function useNotificationsSSE(deviceId: string | undefined, options?: SSEOptions) {
   const [connected, setConnected] = React.useState(false);
   const eventsRef = React.useRef<NotificationEvent[]>([]);
+  const qc = useQueryClient();
 
   React.useEffect(() => {
     if (!deviceId) return;
@@ -46,6 +54,18 @@ export function useNotificationsSSE(deviceId: string | undefined) {
         const data: NotificationEvent = JSON.parse(ev.data);
         eventsRef.current = [data, ...eventsRef.current].slice(0, 50);
         toast(data.message ?? '새 알림이 도착했어요');
+        // 실시간 갱신: 알림/안읽음 카운트 관련 쿼리 무효화
+        if (options?.autoInvalidate) {
+          try {
+            // 모든 알림 목록 쿼리 무효화
+            qc.invalidateQueries({
+              predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === '/api/v1/notifications',
+            });
+            // 안읽음 카운트 무효화
+            qc.invalidateQueries({ queryKey: getGetUnreadCountQueryKey() as any });
+          } catch {}
+        }
+        options?.onEvent?.(data);
       } catch (e) {
         console.warn('[sse] parse error', e);
       }

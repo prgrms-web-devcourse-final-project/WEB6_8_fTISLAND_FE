@@ -8,7 +8,13 @@ import { Label } from '@/components/ui/label';
 import { User, Store, Bike } from 'lucide-react';
 import useLogout from '@/routes/login/_hooks/useLogout';
 import { useAuthStore } from '@/store/auth';
-import { useGetMyInfo, useGetAddress, useGetAvailableProfiles, useSwitchProfile } from '@/api/generated';
+import {
+  useGetMyInfo,
+  useGetAddress,
+  useGetAvailableProfiles,
+  useSwitchProfile,
+  useGetMyProfile2,
+} from '@/api/generated';
 import { useChangePassword } from '@/api/generated';
 import type { ChangePasswordRequest } from '@/api/generated/model/changePasswordRequest';
 import { toast } from 'sonner';
@@ -71,6 +77,9 @@ function RouteComponent() {
 
   const myInfoQuery = useGetMyInfo();
   const my = (myInfoQuery.data as any)?.data?.content;
+  // 메인 페이지와 동일 데이터 소스 사용 (프로필/닉네임/주소 기준)
+  const myProfileQuery = useGetMyProfile2();
+  const profile = (myProfileQuery.data as any)?.data?.content;
   const availableProfilesQuery = useGetAvailableProfiles();
   const available = ((availableProfilesQuery.data as any)?.data?.content?.availableProfiles ?? []) as string[];
   const switchMutation = useSwitchProfile({
@@ -102,11 +111,12 @@ function RouteComponent() {
       },
     },
   });
-  const defaultAddressId = my?.currentProfileDetail?.defaultAddressId as number | undefined;
+  const defaultAddressId = (profile?.defaultAddressId as number | undefined) ?? undefined;
   const addressQuery = useGetAddress(defaultAddressId ?? 0, { query: { enabled: !!defaultAddressId } } as any);
   const addressText = (addressQuery.data as any)?.data?.content?.address ?? PROFILE.address;
   const displayEmail = my?.email ?? 'example@domain.com';
-  const displayName = my?.currentProfileDetail?.nickname ?? my?.username ?? (my as any)?.name ?? PROFILE.nickname;
+  const displayName =
+    (profile?.nickname as string | undefined) ?? (profile?.user?.username as string | undefined) ?? PROFILE.nickname;
   const roleLabel =
     my?.currentActiveProfileType === 'SELLER'
       ? '판매자'
@@ -119,12 +129,8 @@ function RouteComponent() {
       <main className='flex-1 space-y-5 overflow-y-auto px-4 pb-28 pt-8 sm:px-6 sm:pb-32 sm:pt-10'>
         <section className='flex flex-col items-center gap-4 text-center'>
           <div className='relative flex size-24 items-center justify-center rounded-full bg-[#e0f7f5] text-[24px] font-extrabold text-[#1ba7a1] shadow-[0_18px_40px_-32px_rgba(15,23,42,0.35)]'>
-            {my?.currentProfileDetail?.profileImageUrl ? (
-              <img
-                src={my.currentProfileDetail.profileImageUrl}
-                alt='프로필 이미지'
-                className='size-full rounded-full object-cover'
-              />
+            {profile?.profileImageUrl ? (
+              <img src={profile.profileImageUrl} alt='프로필 이미지' className='size-full rounded-full object-cover' />
             ) : (
               (displayName as string).charAt(0)
             )}
@@ -139,11 +145,6 @@ function RouteComponent() {
             </div>
           </div>
           <div className='flex gap-2'>
-            <Button
-              variant='outline'
-              className='h-9 rounded-full border-[#cbd8e2] px-4 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'>
-              주소 관리
-            </Button>
             <Button
               variant='outline'
               className='h-9 rounded-full border-[#cbd8e2] px-4 text-[12px] font-semibold text-[#1b1b1b] hover:bg-[#f5f7f9]'
