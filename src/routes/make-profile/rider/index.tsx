@@ -8,7 +8,7 @@ import { Camera, Clock4, IdCard, MapPin, Phone, ShieldCheck, Upload, Users, Sear
 import { useForm, Controller } from 'react-hook-form';
 import { usePresignedUpload } from '@/lib/usePresignedUpload';
 import { GeneratePresignedUrlRequestDomain } from '@/api/generated/model/generatePresignedUrlRequestDomain';
-import { useCreateProfile, useUpdateDeliveryArea } from '@/api/generated';
+import { useCreateProfile, useUpdateDeliveryArea, useSwitchProfile } from '@/api/generated';
 import { CreateProfileRequestProfileType } from '@/api/generated/model/createProfileRequestProfileType';
 import { toast } from 'sonner';
 import { useKakaoLoader } from '@/lib/useKakaoLoader';
@@ -81,6 +81,7 @@ function RouteComponent() {
       },
     },
   });
+  const switchProfileMutation = useSwitchProfile();
   const updateAreaMutation = useUpdateDeliveryArea();
 
   const onSubmit = useCallback(
@@ -100,12 +101,13 @@ function RouteComponent() {
           },
         },
       });
-      // 이제 막 생성된 라이더 프로필로 서버가 currentActiveProfile을 전환할 시간을 고려해 순서 보장
+      // 서버에서 활성 프로필이 아직 SELLER일 수 있으므로 강제로 라이더로 전환
       try {
         const content = (res as any)?.data?.content ?? (res as any)?.content;
         const pid = content?.profileId ?? content?.currentActiveProfileId;
         if (pid) {
           useAuthStore.getState().setAuth({ currentActiveProfileType: 'RIDER', currentActiveProfileId: pid });
+          await switchProfileMutation.mutateAsync({ data: { targetProfileType: 'RIDER' } } as any);
         }
       } catch {}
       if (data.serviceArea?.trim()) {

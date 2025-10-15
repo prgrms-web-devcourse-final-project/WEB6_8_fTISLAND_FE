@@ -159,6 +159,9 @@ export default function PaymentButton({
         return id;
       };
       const orderId = buildTossOrderId(String(serverOrderId));
+      try {
+        sessionStorage.setItem('last-order-id', String(serverOrderId));
+      } catch {}
       const env = ((import.meta as any)?.env ?? {}) as Record<string, string | undefined>;
       const clientKey =
         (env.VITE_TOSS_CLIENT_KEY as string | undefined) ||

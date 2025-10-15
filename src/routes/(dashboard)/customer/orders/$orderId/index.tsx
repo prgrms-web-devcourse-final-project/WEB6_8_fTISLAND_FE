@@ -10,6 +10,7 @@ import {
   getGet1QueryKey,
   getGetInProgressOrdersInfiniteQueryKey,
   getGetCompletedOrdersInfiniteQueryKey,
+  useGetProduct,
 } from '@/api/generated';
 import { OrderResponseStatus } from '@/api/generated/model/orderResponseStatus';
 import { toast } from 'sonner';
@@ -99,14 +100,7 @@ function RouteComponent() {
     _setRiderAssigned([OrderResponseStatus.RIDER_ASSIGNED, OrderResponseStatus.DELIVERING].includes((s as any) ?? ''));
   }, [order?.status]);
 
-  const storeName = (order?.storeName as string | undefined) ?? '가게';
-  const menus = ((order?.orderItems as any[]) ?? [])
-    .map((it) => {
-      const n = it?.product?.name as string | undefined;
-      const q = it?.quantity as number | undefined;
-      return n ? (q ? `${n} x${q}` : n) : undefined;
-    })
-    .filter(Boolean) as string[];
+  // const storeName = (order?.storeName as string | undefined) ?? '가게';
   const orderAmount = (order?.storePrice as number | undefined) ?? 0;
   const deliveryFee = (order?.deliveryPrice as number | undefined) ?? 0;
   const totalAmount = (order?.totalPrice as number | undefined) ?? orderAmount + deliveryFee;
@@ -118,7 +112,7 @@ function RouteComponent() {
     const two = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;
   }, [createdAt]);
-  const orderNumber = (order?.merchantId as string | undefined) ?? String(order?.id ?? orderId);
+  const orderNumber = String(order?.id ?? orderId);
 
   return (
     <div className='flex min-h-[100dvh] w-full flex-col bg-[#2ac1bc]'>
@@ -200,15 +194,26 @@ function RouteComponent() {
           </CardContent>
         </Card>
 
-        {/* 상점/메뉴 */}
+        {/* 상점/주문 상품 목록 */}
         <Card className='border-none bg-white shadow-sm'>
-          <CardContent className='space-y-2 px-4 py-4 sm:px-5'>
-            <p className='text-[13px] font-semibold text-[#1b1b1b]'>{storeName}</p>
-            <ul className='list-disc space-y-1 pl-4 text-[12px] text-[#6b7785]'>
-              {menus.map((m, i) => (
-                <li key={i}>{m}</li>
-              ))}
-            </ul>
+          <CardContent className='space-y-3 px-4 py-4 sm:px-5'>
+            <p className='text-[13px] font-semibold text-[#1b1b1b]'>주문한 상품</p>
+            {Array.isArray(order?.orderItems) && order.orderItems.length > 0 ? (
+              <div className='space-y-2'>
+                {order.orderItems.map((it: any, idx: number) => (
+                  <OrderItemRow
+                    key={`${it?.productId ?? idx}`}
+                    storeId={(order as any)?.storeId}
+                    item={it}
+                    index={idx}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className='rounded-xl bg-[#f5f7f9] px-3 py-6 text-center text-[13px] text-[#6b7785]'>
+                주문 상품이 없습니다.
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -279,6 +284,44 @@ function RouteComponent() {
           </form>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+type OrderItemRowProps = { storeId?: number; item: any; index: number };
+
+function OrderItemRow({ storeId, item, index }: OrderItemRowProps) {
+  const qty = Number(item?.quantity ?? 0);
+  const pid = Number(item?.productId ?? item?.product?.id);
+  const sid = Number(item?.product?.storeId ?? storeId);
+  const productQuery = useGetProduct(Number.isFinite(sid) ? sid : 0, Number.isFinite(pid) ? pid : 0, {
+    query: { enabled: Number.isFinite(sid) && Number.isFinite(pid), staleTime: 60_000 },
+  } as any);
+  const product = (productQuery.data as any)?.data?.content ?? item?.product ?? {};
+  const name = product?.name ?? `상품 #${pid ?? index + 1}`;
+  const unitPrice = Number.isFinite(Number(product?.price))
+    ? Number(product?.price)
+    : Number.isFinite(Number(item?.price))
+      ? Number(item?.price)
+      : undefined;
+  const image = (product?.imageUrl as string | undefined) ?? (item?.product?.imageUrl as string | undefined);
+
+  return (
+    <div className='flex items-center justify-between rounded-xl bg-[#f5f7f9] px-3 py-2'>
+      <div className='flex items-center gap-3'>
+        <div className='flex size-12 items-center justify-center overflow-hidden rounded-xl bg-[#e2f6f5]'>
+          {image ? <img src={image} alt={name} className='size-12 object-cover' /> : (name?.slice(0, 2) ?? '상품')}
+        </div>
+        <div>
+          <p className='text-[13px] font-semibold text-[#1b1b1b]'>{name}</p>
+          <p className='text-[12px] text-[#6b7785]'>x {qty}</p>
+        </div>
+      </div>
+      <div className='text-right text-[12px] font-semibold text-[#1b1b1b]'>
+        {unitPrice != null && Number.isFinite(unitPrice)
+          ? `₩ ${new Intl.NumberFormat('ko-KR').format(unitPrice * qty)}`
+          : ''}
+      </div>
     </div>
   );
 }

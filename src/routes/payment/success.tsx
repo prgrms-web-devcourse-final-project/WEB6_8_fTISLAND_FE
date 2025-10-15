@@ -24,10 +24,21 @@ function RouteComponent() {
         const content = (res as any)?.data?.content ?? (res as any)?.content;
         const numericId = Number(content?.id ?? content?.orderId);
         toast.success('결제가 완료되었습니다.');
-        if (Number.isFinite(numericId)) {
+        // 결제 성공 시 장바구니 비우기
+        try {
+          sessionStorage.removeItem('cart');
+        } catch {}
+        let targetId = numericId;
+        if (!Number.isFinite(targetId)) {
+          try {
+            const cached = sessionStorage.getItem('last-order-id');
+            if (cached) targetId = Number(cached);
+          } catch {}
+        }
+        if (Number.isFinite(targetId)) {
           navigate({
             to: '/customer/orders/$orderId',
-            params: { orderId: String(numericId) },
+            params: { orderId: String(targetId) },
             search: { status: 'pending' },
           });
         } else {

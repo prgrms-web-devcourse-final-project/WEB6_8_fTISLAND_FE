@@ -249,6 +249,9 @@ export default function WidgetPaymentButton({
         return id;
       };
       orderIdRef.current = buildTossOrderId(String(serverOrderId));
+      try {
+        sessionStorage.setItem('last-order-id', String(serverOrderId));
+      } catch {}
       merchantUidRef.current = merchantUid;
       setOpen(true);
     } catch (e) {

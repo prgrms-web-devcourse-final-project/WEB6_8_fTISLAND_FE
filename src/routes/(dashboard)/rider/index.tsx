@@ -12,7 +12,6 @@ import {
   useGetDeliveryArea,
   useGetInProgressDeliveryInfinite,
   useGetTodayDeliveries,
-  useSubscribe,
   useDecideOrderDelivery,
 } from '@/api/generated';
 import { toast } from 'sonner';
@@ -161,63 +160,43 @@ function RouteComponent() {
     setOffers((prev) => prev.filter((o) => o.id !== id));
   };
 
-  // SSE 구독: 주변 배달 요청 실시간 반영
-  useSubscribe(
-    { profileId: Number((riderProfile as any)?.profileId ?? 0) } as any,
-    {
-      query: {
-        enabled: Boolean((riderProfile as any)?.profileId),
-        refetchOnWindowFocus: false,
-        staleTime: Infinity,
-        select: (res: any) => res,
-        onSuccess: (res: any) => {
-          try {
-            const msg = (res?.data?.content ?? res)?.message as string | undefined;
-            const payload = (res?.data?.content ?? res)?.payload as any;
-            if (!msg) return;
-            // 메시지 분기 (이미지의 열거형 참고)
-            if (msg === 'RIDER_ACCEPTED_ORDER') {
-              // 예시 Payload (RiderNotificationDto)
-              // {
-              //   orderDetailsDto: { orderId, storeName, distance, expectedCharge },
-              //   riderId, etaMinutes, orderDeliveryStatus
-              // }
-              const od = payload?.orderDetailsDto ?? {};
-              const id = String(od?.orderId ?? payload?.orderId ?? '');
-              if (!id) return;
-              const store = String(od?.storeName ?? '상점');
-              const distanceKm = Number(od?.distance ?? 0);
-              const fee = Number(od?.expectedCharge ?? od?.expectedFee ?? 0);
-              const etaMinutes = Number(payload?.etaMinutes ?? 0);
-              const createdAt = Date.now();
-              setOffers((prev) => {
-                // 이미 존재하면 최신 정보로 갱신
-                const next = prev.filter((o) => o.id !== id);
-                next.unshift({ id, store, distanceKm, fee, etaMinutes, createdAt });
-                return next.slice(0, 100);
-              });
-            }
-            if (msg === 'RIDER_DECISION') {
-              // 라이더가 수락/거절을 확정하면 해당 요청 제거
-              const id = String(payload?.requestId ?? payload?.orderId ?? payload?.id ?? '');
-              if (!id) return;
-              setOffers((prev) => prev.filter((o) => o.id !== id));
-            }
-            if (
-              msg === 'ORDER_CANCELED_CUSTOMER' ||
-              msg === 'ORDER_CANCELED_SELLER' ||
-              msg === 'ORDER_CANCEL_FAILED_CUSTOMER' ||
-              msg === 'ORDER_CANCEL_FAILED_SELLER'
-            ) {
-              const id = String(payload?.requestId ?? payload?.orderId ?? payload?.id ?? '');
-              if (!id) return;
-              setOffers((prev) => prev.filter((o) => o.id !== id));
-            }
-          } catch {}
-        },
-      },
-    } as any
-  );
+  // SSE 구독: 주변 배달 요청 실시간 반영 (HTTP 폴링 훅 대신 네이티브 SSE 사용)
+  React.useEffect(() => {
+    const profileId = (riderProfile as any)?.profileId as number | undefined;
+    if (!profileId) return;
+    try {
+      const es = new EventSource('https://api.deliver-anything.shop/api/v1/notifications/stream');
+      es.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data || '{}');
+          const msg = data?.message as string | undefined;
+          const payload = data?.payload as any;
+          if (!msg) return;
+          if (msg === 'RIDER_ACCEPTED_ORDER') {
+            const od = payload?.orderDetailsDto ?? {};
+            const id = String(od?.orderId ?? payload?.orderId ?? '');
+            if (!id) return;
+            const store = String(od?.storeName ?? '상점');
+            const distanceKm = Number(od?.distance ?? 0);
+            const fee = Number(od?.expectedCharge ?? od?.expectedFee ?? 0);
+            const etaMinutes = Number(payload?.etaMinutes ?? 0);
+            const createdAt = Date.now();
+            setOffers((prev) => {
+              const next = prev.filter((o) => o.id !== id);
+              next.unshift({ id, store, distanceKm, fee, etaMinutes, createdAt });
+              return next.slice(0, 100);
+            });
+          }
+          if (msg === 'RIDER_DECISION') {
+            const id = String(payload?.requestId ?? payload?.orderId ?? payload?.id ?? '');
+            if (!id) return;
+            setOffers((prev) => prev.filter((o) => o.id !== id));
+          }
+        } catch {}
+      };
+      return () => es.close();
+    } catch {}
+  }, [(riderProfile as any)?.profileId]);
 
   // 오늘의 배달 내역 요약
   const todayQuery = useGetTodayDeliveries({

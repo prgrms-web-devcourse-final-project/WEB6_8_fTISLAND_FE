@@ -134,6 +134,9 @@ export default function PaymentButtonV2({
         return id;
       };
       const orderId = buildTossOrderId(String(serverOrderId));
+      try {
+        sessionStorage.setItem('last-order-id', String(serverOrderId));
+      } catch {}
 
       // 2) v2 SDK 초기화 및 결제 요청
       const env = ((import.meta as any)?.env ?? {}) as Record<string, string | undefined>;

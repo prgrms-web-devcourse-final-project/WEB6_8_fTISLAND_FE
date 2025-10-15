@@ -228,7 +228,7 @@ function RouteComponent() {
             {deficit > 0 ? <span className='ml-2 text-[#FFE08A]'>({deficit.toLocaleString()}원 부족)</span> : null}
           </div>
           <div className='flex w-full gap-2'>
-            <PaymentButton
+            {/* <PaymentButton
               className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'
               method='토스페이'
               items={items}
@@ -241,9 +241,9 @@ function RouteComponent() {
               riderNote={riderNote}
               storeNote={storeNote}>
               토스 간편결제
-            </PaymentButton>
+            </PaymentButton> */}
             <PaymentButtonV2
-              className='h-11 flex-1 rounded-full bg-black text-[13px] font-semibold text-white hover:bg-black/90'
+              className='h-11 flex-1 rounded-full bg-white text-[13px] font-semibold text-[#1b1b1b] hover:bg-white/90'
               method='토스페이'
               items={items}
               nickname={profile?.nickname ?? profile?.user?.username}
@@ -254,7 +254,7 @@ function RouteComponent() {
               deliveryFee={deliveryFee}
               riderNote={riderNote}
               storeNote={storeNote}>
-              토스페이(v2)
+              토스페이로 결제
             </PaymentButtonV2>
           </div>
         </div>
