@@ -18,7 +18,6 @@ import {
 import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
 import AddressManage from '@/components/address/AddressManage';
 import { Dialog, DialogContent } from '@radix-ui/react-dialog';
-import PaymentButton from '@/routes/(dashboard)/customer/_components/PaymentButton';
 import PaymentButtonV2 from '@/routes/(dashboard)/customer/_components/PaymentButtonV2';
 
 export const Route = createFileRoute('/(dashboard)/customer/cart/')({

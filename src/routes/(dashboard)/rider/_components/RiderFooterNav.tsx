@@ -23,10 +23,7 @@ export function RiderFooterNav({ items, activeIndex = 0, onClickItem, className 
             type='button'
             onClick={() => onClickItem?.(index)}
             aria-current={index === activeIndex ? 'page' : undefined}
-            className={cn(
-              'flex flex-col cursor-pointer items-center gap-1 rounded-full px-2 transition-colors',
-              index === activeIndex ? 'text-white bg-white/10 ring-1 ring-white/30' : 'text-white/80 hover:text-white'
-            )}>
+            className={cn('flex flex-col cursor-pointer items-center gap-1 rounded-full px-2 transition-colors')}>
             <item.icon className={cn('transition-all', index === activeIndex ? 'size-5' : 'size-4')} aria-hidden />
             <span className={cn(index === activeIndex ? 'font-extrabold' : 'font-semibold')}>{item.label}</span>
             <span

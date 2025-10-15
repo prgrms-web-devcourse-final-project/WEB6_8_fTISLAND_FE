@@ -55,7 +55,13 @@ function setDeviceId(id: string | null | undefined): void {
   try {
     if (typeof window === 'undefined') return;
     if (!id || typeof id !== 'string') return;
+    const prev = localStorage.getItem('device-id');
     localStorage.setItem('device-id', id);
+    if (prev !== id) {
+      try {
+        window.dispatchEvent(new CustomEvent('device-id:changed', { detail: id }));
+      } catch {}
+    }
   } catch {
     // ignore
   }

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { EventSourcePolyfill } from 'event-source-polyfill';
 import * as React from 'react';
 import { RiderPageLayout } from './RiderPageLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -160,12 +161,37 @@ function RouteComponent() {
     setOffers((prev) => prev.filter((o) => o.id !== id));
   };
 
-  // SSE 구독: 주변 배달 요청 실시간 반영 (HTTP 폴링 훅 대신 네이티브 SSE 사용)
+  // SSE 구독: 주변 배달 요청 실시간 반영 (EventSourcePolyfill로 헤더 포함)
   React.useEffect(() => {
     const profileId = (riderProfile as any)?.profileId as number | undefined;
     if (!profileId) return;
     try {
-      const es = new EventSource('https://api.deliver-anything.shop/api/v1/notifications/stream');
+      // 토큰 및 디바이스 아이디 읽기
+      const token = (() => {
+        try {
+          const raw = localStorage.getItem('auth');
+          const parsed = raw ? JSON.parse(raw) : null;
+          const state = parsed?.state ?? parsed;
+          return state?.accessToken as string | undefined;
+        } catch {
+          return undefined;
+        }
+      })();
+      const deviceId = (() => {
+        try {
+          return localStorage.getItem('device-id') ?? undefined;
+        } catch {
+          return undefined;
+        }
+      })();
+      const es = new EventSourcePolyfill('https://api.deliver-anything.shop/api/v1/notifications/stream', {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(deviceId ? { 'X-Device-ID': deviceId } : {}),
+        },
+        withCredentials: true,
+        heartbeatTimeout: 60000,
+      } as any);
       es.onmessage = (ev) => {
         try {
           const data = JSON.parse(ev.data || '{}');

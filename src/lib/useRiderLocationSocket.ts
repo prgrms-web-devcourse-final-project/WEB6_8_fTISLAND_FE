@@ -5,7 +5,7 @@ import { Client, type IMessage } from '@stomp/stompjs';
 export type RiderLocationDto = {
   latitude: number;
   longitude: number;
-  timestamp: number; // ms
+  timestamp: number; // ms (백엔드 스펙: 밀리초)
 };
 
 export interface UseRiderLocationSocketOptions {
@@ -14,12 +14,24 @@ export interface UseRiderLocationSocketOptions {
   endpoint?: string;
   // 연결 자동 시작 여부
   autoConnect?: boolean;
+  // 서버가 라이더 알림을 브로드캐스트하는 토픽 구독 시 콜백
+  onNotification?: (notification: any) => void;
+  // 서버에서 요구하는 PUBLISH 목적지 (기본 '/app/location')
+  publishDestination?: string;
+  // 서버에서 위치 수신 토픽 커스터마이즈 필요 시
+  subscribeLocationTopic?: (riderProfileId: string | number) => string;
+  // 서버에서 알림 브로드캐스트 토픽 커스터마이즈 필요 시
+  subscribeNotificationTopic?: (riderProfileId: string | number) => string;
 }
 
 export function useRiderLocationSocket({
   riderProfileId,
   endpoint,
   autoConnect = true,
+  onNotification,
+  publishDestination = '/app/location',
+  subscribeLocationTopic,
+  subscribeNotificationTopic,
 }: UseRiderLocationSocketOptions) {
   const [connected, setConnected] = React.useState(false);
   const [lastLocation, setLastLocation] = React.useState<RiderLocationDto | null>(null);
@@ -81,9 +93,11 @@ export function useRiderLocationSocket({
       onConnect: (frame) => {
         console.info('[stomp] connected', frame?.headers);
         setConnected(true);
-        const topic = `/topic/rider/location/${riderProfileId}`;
-        console.info('[stomp] subscribe', topic);
-        client.subscribe(topic, (msg: IMessage) => {
+        const locTopic = subscribeLocationTopic
+          ? subscribeLocationTopic(riderProfileId)
+          : `/topic/rider/location/${riderProfileId}`;
+        console.info('[stomp] subscribe', locTopic);
+        client.subscribe(locTopic, (msg: IMessage) => {
           try {
             console.debug('[stomp] message', msg?.body);
             const body = JSON.parse(msg.body);
@@ -94,6 +108,20 @@ export function useRiderLocationSocket({
             }
           } catch (e) {
             console.error('[stomp] parse-error', e);
+          }
+        });
+        // 라이더 알림 브로드캐스트 구독
+        const notiTopic = subscribeNotificationTopic
+          ? subscribeNotificationTopic(riderProfileId)
+          : `/topic/rider/notification/${riderProfileId}`;
+        console.info('[stomp] subscribe', notiTopic);
+        client.subscribe(notiTopic, (msg: IMessage) => {
+          try {
+            const body = JSON.parse(msg.body);
+            const payload = body?.payload ?? body;
+            onNotification?.(payload);
+          } catch (e) {
+            console.error('[stomp] noti-parse-error', e);
           }
         });
       },
@@ -130,8 +158,22 @@ export function useRiderLocationSocket({
   const sendLocation = React.useCallback((location: RiderLocationDto) => {
     const c = clientRef.current;
     if (!c?.connected) return;
-    console.debug('[stomp] publish /app/location', location);
-    c.publish({ destination: '/app/location', body: JSON.stringify(location) });
+    // 백엔드 스펙: RiderLocationDto(ms)만 전송
+    const payload: RiderLocationDto = {
+      latitude: Number(location.latitude),
+      longitude: Number(location.longitude),
+      timestamp: Number(location?.timestamp ?? Date.now()),
+    };
+    const token = getAccessToken();
+    console.debug('[stomp] publish', publishDestination, payload);
+    c.publish({
+      destination: publishDestination,
+      body: JSON.stringify(payload),
+      headers: {
+        'content-type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
   }, []);
 
   React.useEffect(() => {
