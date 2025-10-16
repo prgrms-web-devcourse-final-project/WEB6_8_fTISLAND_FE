@@ -48,9 +48,23 @@ function RouteComponent() {
         const content = (res as any)?.data?.content ?? (res as any)?.content;
         const profileId = content?.profileId ?? content?.currentActiveProfileId;
         try {
+          // 이전 보유 프로필에 CUSTOMER 추가
+          const prev = useAuthStore.getState();
+          const prevAvail = Array.isArray(prev.availableProfiles) ? prev.availableProfiles : [];
+          const nextAvail = Array.from(new Set([...(prevAvail as any[]), 'CUSTOMER']));
+          // Authorization 헤더가 오면 accessToken 갱신
+          const hdr = (res as any)?.headers?.authorization ?? (res as any)?.headers?.Authorization;
+          const newToken =
+            typeof hdr === 'string' && hdr.toLowerCase().startsWith('bearer ')
+              ? hdr.slice(7)
+              : typeof hdr === 'string'
+                ? hdr
+                : undefined;
           useAuthStore.getState().setAuth({
+            ...(newToken ? { accessToken: newToken } : {}),
             currentActiveProfileType: 'CUSTOMER',
             currentActiveProfileId: profileId,
+            availableProfiles: nextAvail as any,
           });
         } catch {}
         toast.success('소비자 프로필이 생성되었습니다.');

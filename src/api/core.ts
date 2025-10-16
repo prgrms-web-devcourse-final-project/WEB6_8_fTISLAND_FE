@@ -101,12 +101,14 @@ function createApiClient(): AxiosInstance {
     return config;
   });
 
-  // Response interceptor: persist Authorization bearer token when present, toast on error
+  // Response interceptor: persist Authorization bearer token only for auth endpoints, toast on error
   instance.interceptors.response.use(
     (response: AxiosResponse) => {
       try {
+        const url = (response?.config?.url || '').toString();
+        const isAuthEndpoint = /\/api\/v1\/auth\//.test(url);
         const hdr = (response.headers as any)?.authorization ?? (response.headers as any)?.Authorization;
-        if (hdr && typeof hdr === 'string') {
+        if (isAuthEndpoint && hdr && typeof hdr === 'string') {
           const token = hdr.toLowerCase().startsWith('bearer ') ? hdr.slice(7) : hdr;
           setAccessToken(token);
         }

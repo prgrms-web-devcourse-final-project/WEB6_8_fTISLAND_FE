@@ -5,7 +5,8 @@ import { Home, ListFilter, Search, User } from 'lucide-react';
 export const Route = createRootRoute({
   beforeLoad: () => {
     if (typeof window === 'undefined') return;
-    const path = window.location.pathname;
+    const rawPath = window.location.pathname;
+    const path = rawPath.endsWith('/') && rawPath.length > 1 ? rawPath.slice(0, -1) : rawPath;
 
     // 공개 경로: 로그인/회원가입/온보딩/결제 콜백 등
     const publicPaths = new Set<string>(['/login', '/signup', '/make-profile', '/payment/success', '/payment/fail']);
@@ -36,8 +37,8 @@ export const Route = createRootRoute({
       throw redirect({ to: '/login' });
     }
 
-    // 로그인된 사용자가 로그인/회원가입 페이지 접근 시 프로필 홈으로 리다이렉트
-    if (token && publicPaths.has(path) && (path === '/login' || path === '/signup')) {
+    // 로그인된 사용자가 로그인/회원가입 페이지 접근 시: 프로필이 확정된 경우에만 대시보드로 리다이렉트
+    if (token && profile && publicPaths.has(path) && (path === '/login' || path === '/signup')) {
       // 로그인했지만 사용 가능한 프로필이 없으면 온보딩으로
       if (!available || !Array.isArray(available) || available.length === 0) {
         throw redirect({ to: '/make-profile' });
