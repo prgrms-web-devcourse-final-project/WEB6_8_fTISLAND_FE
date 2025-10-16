@@ -5,11 +5,11 @@
  * 뭐든배달 API 명세서입니다
  * OpenAPI spec version: v1
  */
-import type { ProfileResponseProfileType } from './profileResponseProfileType';
+import type { CreateProfileResponseProfileType } from './createProfileResponseProfileType';
 
-export interface ProfileResponse {
+export interface CreateProfileResponse {
   userId?: number;
-  profileType?: ProfileResponseProfileType;
+  profileType?: CreateProfileResponseProfileType;
   profileId?: number;
   nickname?: string;
   isActive?: boolean;

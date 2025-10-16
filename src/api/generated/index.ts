@@ -32,6 +32,7 @@ import type {
   ApiResponseAddressResponse,
   ApiResponseAvailableProfilesResponse,
   ApiResponseBoolean,
+  ApiResponseCreateProfileResponse,
   ApiResponseCurrentDeliveringDetailsDto,
   ApiResponseCursorPageResponseOrderResponse,
   ApiResponseCursorPageResponseProductResponse,
@@ -49,9 +50,9 @@ import type {
   ApiResponseLong,
   ApiResponseOrderCreateResponse,
   ApiResponseOrderResponse,
+  ApiResponsePasswordResetVerifyResponse,
   ApiResponseProductDetailResponse,
   ApiResponseProductResponse,
-  ApiResponseProfileResponse,
   ApiResponseReviewCreateResponse,
   ApiResponseReviewLikeResponse,
   ApiResponseReviewRatingAndListResponseDto,
@@ -83,9 +84,13 @@ import type {
   GetStoreReviewsParams,
   GetTotalDeliveriesParams,
   LoginRequest,
+  MyEmailVerifyRequest,
   OrderCancelRequest,
   OrderCreateRequest,
   OrderPayRequest,
+  PasswordResetConfirmRequest,
+  PasswordResetRequest,
+  PasswordResetVerifyRequest,
   ProductCreateRequest,
   ProductUpdateRequest,
   ReviewCreateRequest,
@@ -106,6 +111,8 @@ import type {
   SwitchProfileRequest,
   UpdateStatusParams,
   UpdateUserRequest,
+  VerificationSendRequest,
+  VerificationVerifyRequest,
 } from './model';
 
 import { customInstance } from '../orval-mutator';
@@ -2617,6 +2624,114 @@ export const useDeleteProduct = <TError = unknown, TContext = unknown>(
 };
 
 /**
+ * 클라이언트가 보낸 인증 코드를 검증하고, 성공 시 사용자 엔티티의 `isEmailVerified` 필드를 `true`로 업데이트합니다. **인증 대상 이메일은 로그인 정보로 서버에서 강제 주입**됩니다.
+ * @summary 2. 로그인 사용자 이메일 인증 코드 검증
+ */
+export const verifyCode = (myEmailVerifyRequest: MyEmailVerifyRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({
+    url: `/api/v1/users/me/verify-email/verify`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: myEmailVerifyRequest,
+    signal,
+  });
+};
+
+export const getVerifyCodeMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyCode>>,
+    TError,
+    { data: MyEmailVerifyRequest },
+    TContext
+  >;
+}): UseMutationOptions<Awaited<ReturnType<typeof verifyCode>>, TError, { data: MyEmailVerifyRequest }, TContext> => {
+  const mutationKey = ['verifyCode'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyCode>>, { data: MyEmailVerifyRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return verifyCode(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyCodeMutationResult = NonNullable<Awaited<ReturnType<typeof verifyCode>>>;
+export type VerifyCodeMutationBody = MyEmailVerifyRequest;
+export type VerifyCodeMutationError = unknown;
+
+/**
+ * @summary 2. 로그인 사용자 이메일 인증 코드 검증
+ */
+export const useVerifyCode = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof verifyCode>>,
+      TError,
+      { data: MyEmailVerifyRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof verifyCode>>, TError, { data: MyEmailVerifyRequest }, TContext> => {
+  const mutationOptions = getVerifyCodeMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 로그인된 사용자(`rq.getActor()`)의 이메일로 인증 코드를 발송합니다. **이메일 주소는 서버에서 강제 주입**되므로 클라이언트 요청 DTO가 필요 없습니다.
+ * @summary 1. 로그인 사용자 이메일 인증 코드 발송
+ */
+export const sendVerificationCodeForMyEmail = (signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({ url: `/api/v1/users/me/verify-email/send`, method: 'POST', signal });
+};
+
+export const getSendVerificationCodeForMyEmailMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof sendVerificationCodeForMyEmail>>, TError, void, TContext>;
+}): UseMutationOptions<Awaited<ReturnType<typeof sendVerificationCodeForMyEmail>>, TError, void, TContext> => {
+  const mutationKey = ['sendVerificationCodeForMyEmail'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendVerificationCodeForMyEmail>>, void> = () => {
+    return sendVerificationCodeForMyEmail();
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendVerificationCodeForMyEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendVerificationCodeForMyEmail>>
+>;
+
+export type SendVerificationCodeForMyEmailMutationError = unknown;
+
+/**
+ * @summary 1. 로그인 사용자 이메일 인증 코드 발송
+ */
+export const useSendVerificationCodeForMyEmail = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof sendVerificationCodeForMyEmail>>, TError, void, TContext>;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<Awaited<ReturnType<typeof sendVerificationCodeForMyEmail>>, TError, void, TContext> => {
+  const mutationOptions = getSendVerificationCodeForMyEmailMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
  * 배달 상태를 ON ↔ OFF로 전환합니다.
  * @summary 배달 상태 토글
  */
@@ -2850,7 +2965,7 @@ export function useGetAvailableProfiles<TData = Awaited<ReturnType<typeof getAva
  * @summary 프로필 생성
  */
 export const createProfile = (createProfileRequest: CreateProfileRequest, signal?: AbortSignal) => {
-  return customInstance<ApiResponseProfileResponse>({
+  return customInstance<ApiResponseCreateProfileResponse>({
     url: `/api/v1/users/me/profiles`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4379,6 +4494,153 @@ export const usePay = <TError = unknown, TContext = unknown>(
 };
 
 /**
+ * 사용자가 입력한 인증 코드를 검증합니다. 성공 시 해당 인증 정보는 Redis에서 삭제됩니다.
+ * @summary 인증 코드 검증
+ */
+export const verifyCode1 = (verificationVerifyRequest: VerificationVerifyRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({
+    url: `/api/v1/auth/verification/verify`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: verificationVerifyRequest,
+    signal,
+  });
+};
+
+export const getVerifyCode1MutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyCode1>>,
+    TError,
+    { data: VerificationVerifyRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyCode1>>,
+  TError,
+  { data: VerificationVerifyRequest },
+  TContext
+> => {
+  const mutationKey = ['verifyCode1'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyCode1>>, { data: VerificationVerifyRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return verifyCode1(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyCode1MutationResult = NonNullable<Awaited<ReturnType<typeof verifyCode1>>>;
+export type VerifyCode1MutationBody = VerificationVerifyRequest;
+export type VerifyCode1MutationError = unknown;
+
+/**
+ * @summary 인증 코드 검증
+ */
+export const useVerifyCode1 = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof verifyCode1>>,
+      TError,
+      { data: VerificationVerifyRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof verifyCode1>>,
+  TError,
+  { data: VerificationVerifyRequest },
+  TContext
+> => {
+  const mutationOptions = getVerifyCode1MutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 이메일 또는 SMS로 인증 코드를 발송합니다. (현재는 이메일만 지원). 요청 시 `purpose`를 명시해야 합니다.
+ * @summary 인증 코드 발송
+ */
+export const sendVerificationCode = (verificationSendRequest: VerificationSendRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({
+    url: `/api/v1/auth/verification/send`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: verificationSendRequest,
+    signal,
+  });
+};
+
+export const getSendVerificationCodeMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendVerificationCode>>,
+    TError,
+    { data: VerificationSendRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendVerificationCode>>,
+  TError,
+  { data: VerificationSendRequest },
+  TContext
+> => {
+  const mutationKey = ['sendVerificationCode'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendVerificationCode>>,
+    { data: VerificationSendRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return sendVerificationCode(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendVerificationCodeMutationResult = NonNullable<Awaited<ReturnType<typeof sendVerificationCode>>>;
+export type SendVerificationCodeMutationBody = VerificationSendRequest;
+export type SendVerificationCodeMutationError = unknown;
+
+/**
+ * @summary 인증 코드 발송
+ */
+export const useSendVerificationCode = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof sendVerificationCode>>,
+      TError,
+      { data: VerificationSendRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof sendVerificationCode>>,
+  TError,
+  { data: VerificationSendRequest },
+  TContext
+> => {
+  const mutationOptions = getSendVerificationCodeMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
  * 이메일과 비밀번호로 신규 회원가입을 진행합니다. 비밀번호는 8자 이상, 영문/숫자/특수문자 포함이어야 합니다.
  * @summary 회원가입
  */
@@ -4466,6 +4728,230 @@ export const useRefreshToken = <TError = unknown, TContext = unknown>(
   queryClient?: QueryClient
 ): UseMutationResult<Awaited<ReturnType<typeof refreshToken>>, TError, void, TContext> => {
   const mutationOptions = getRefreshTokenMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 인증 코드를 검증하고 비밀번호 재설정용 `resetToken`을 발급받습니다.
+ * @summary 2단계: 인증 코드 검증 및 재설정 토큰 발급
+ */
+export const verifyCode2 = (passwordResetVerifyRequest: PasswordResetVerifyRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponsePasswordResetVerifyResponse>({
+    url: `/api/v1/auth/password/reset/verify`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: passwordResetVerifyRequest,
+    signal,
+  });
+};
+
+export const getVerifyCode2MutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyCode2>>,
+    TError,
+    { data: PasswordResetVerifyRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyCode2>>,
+  TError,
+  { data: PasswordResetVerifyRequest },
+  TContext
+> => {
+  const mutationKey = ['verifyCode2'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyCode2>>, { data: PasswordResetVerifyRequest }> = (
+    props
+  ) => {
+    const { data } = props ?? {};
+
+    return verifyCode2(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyCode2MutationResult = NonNullable<Awaited<ReturnType<typeof verifyCode2>>>;
+export type VerifyCode2MutationBody = PasswordResetVerifyRequest;
+export type VerifyCode2MutationError = unknown;
+
+/**
+ * @summary 2단계: 인증 코드 검증 및 재설정 토큰 발급
+ */
+export const useVerifyCode2 = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof verifyCode2>>,
+      TError,
+      { data: PasswordResetVerifyRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof verifyCode2>>,
+  TError,
+  { data: PasswordResetVerifyRequest },
+  TContext
+> => {
+  const mutationOptions = getVerifyCode2MutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 사용자 이메일로 비밀번호 재설정용 인증 코드를 발송합니다. (VerificationPurpose.PASSWORD_RESET 사용)
+ * @summary 1단계: 비밀번호 재설정 요청 (인증 코드 발송)
+ */
+export const requestPasswordReset = (passwordResetRequest: PasswordResetRequest, signal?: AbortSignal) => {
+  return customInstance<ApiResponseVoid>({
+    url: `/api/v1/auth/password/reset/request`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: passwordResetRequest,
+    signal,
+  });
+};
+
+export const getRequestPasswordResetMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestPasswordReset>>,
+    TError,
+    { data: PasswordResetRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestPasswordReset>>,
+  TError,
+  { data: PasswordResetRequest },
+  TContext
+> => {
+  const mutationKey = ['requestPasswordReset'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestPasswordReset>>,
+    { data: PasswordResetRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestPasswordReset(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestPasswordResetMutationResult = NonNullable<Awaited<ReturnType<typeof requestPasswordReset>>>;
+export type RequestPasswordResetMutationBody = PasswordResetRequest;
+export type RequestPasswordResetMutationError = unknown;
+
+/**
+ * @summary 1단계: 비밀번호 재설정 요청 (인증 코드 발송)
+ */
+export const useRequestPasswordReset = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof requestPasswordReset>>,
+      TError,
+      { data: PasswordResetRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof requestPasswordReset>>,
+  TError,
+  { data: PasswordResetRequest },
+  TContext
+> => {
+  const mutationOptions = getRequestPasswordResetMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
+/**
+ * 발급받은 `resetToken`과 새 비밀번호를 사용하여 최종적으로 비밀번호를 변경합니다. 토큰은 사용 즉시 무효화됩니다.
+ * @summary 3단계: 새 비밀번호 설정
+ */
+export const confirmPasswordReset = (
+  passwordResetConfirmRequest: PasswordResetConfirmRequest,
+  signal?: AbortSignal
+) => {
+  return customInstance<ApiResponseVoid>({
+    url: `/api/v1/auth/password/reset/confirm`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: passwordResetConfirmRequest,
+    signal,
+  });
+};
+
+export const getConfirmPasswordResetMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmPasswordReset>>,
+    TError,
+    { data: PasswordResetConfirmRequest },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmPasswordReset>>,
+  TError,
+  { data: PasswordResetConfirmRequest },
+  TContext
+> => {
+  const mutationKey = ['confirmPasswordReset'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmPasswordReset>>,
+    { data: PasswordResetConfirmRequest }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return confirmPasswordReset(data);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmPasswordResetMutationResult = NonNullable<Awaited<ReturnType<typeof confirmPasswordReset>>>;
+export type ConfirmPasswordResetMutationBody = PasswordResetConfirmRequest;
+export type ConfirmPasswordResetMutationError = unknown;
+
+/**
+ * @summary 3단계: 새 비밀번호 설정
+ */
+export const useConfirmPasswordReset = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof confirmPasswordReset>>,
+      TError,
+      { data: PasswordResetConfirmRequest },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient
+): UseMutationResult<
+  Awaited<ReturnType<typeof confirmPasswordReset>>,
+  TError,
+  { data: PasswordResetConfirmRequest },
+  TContext
+> => {
+  const mutationOptions = getConfirmPasswordResetMutationOptions(options);
 
   return useMutation(mutationOptions, queryClient);
 };

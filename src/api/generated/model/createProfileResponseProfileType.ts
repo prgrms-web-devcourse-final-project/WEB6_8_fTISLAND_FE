@@ -6,10 +6,11 @@
  * OpenAPI spec version: v1
  */
 
-export type ProfileResponseProfileType = (typeof ProfileResponseProfileType)[keyof typeof ProfileResponseProfileType];
+export type CreateProfileResponseProfileType =
+  (typeof CreateProfileResponseProfileType)[keyof typeof CreateProfileResponseProfileType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ProfileResponseProfileType = {
+export const CreateProfileResponseProfileType = {
   CUSTOMER: 'CUSTOMER',
   SELLER: 'SELLER',
   RIDER: 'RIDER',

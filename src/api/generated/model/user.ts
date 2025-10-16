@@ -26,6 +26,6 @@ export interface User {
   currentActiveProfileType?: UserCurrentActiveProfileType;
   currentActiveProfileId?: number;
   admin?: boolean;
-  activeProfileTypes?: UserActiveProfileTypesItem[];
   emailVerified?: boolean;
+  activeProfileTypes?: UserActiveProfileTypesItem[];
 }

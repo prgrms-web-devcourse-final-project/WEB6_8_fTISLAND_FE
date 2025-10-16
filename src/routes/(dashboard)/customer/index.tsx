@@ -132,6 +132,7 @@ function RouteComponent() {
       },
     }
   );
+
   const notificationItems = React.useMemo(() => {
     const pages = (notificationsQuery.data?.pages ?? []) as any[];
     return pages.flatMap((p) => (p?.data?.content?.content ?? []) as any[]);

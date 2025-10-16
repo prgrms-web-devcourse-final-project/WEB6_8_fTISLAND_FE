@@ -5,11 +5,11 @@
  * 뭐든배달 API 명세서입니다
  * OpenAPI spec version: v1
  */
-import type { ProfileResponse } from './profileResponse';
+import type { PasswordResetVerifyResponse } from './passwordResetVerifyResponse';
 
-export interface ApiResponseProfileResponse {
+export interface ApiResponsePasswordResetVerifyResponse {
   success?: boolean;
   code?: string;
   message?: string;
-  content?: ProfileResponse;
+  content?: PasswordResetVerifyResponse;
 }
