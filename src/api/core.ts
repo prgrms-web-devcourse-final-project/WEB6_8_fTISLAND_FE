@@ -6,6 +6,12 @@ const { VITE_API_URL, VITE_SERVER_URL } = (import.meta as any).env ?? {};
 const RAW_BASE = (VITE_API_URL || VITE_SERVER_URL || '') as string;
 const API_BASE_URL = RAW_BASE.trim().replace(/\/$/, '');
 
+// Logout 직후 자동 refresh를 잠시 차단하기 위한 플래그
+let refreshBlockedUntil = 0;
+export function blockAuthRefresh(durationMs = 15_000): void {
+  refreshBlockedUntil = Date.now() + Math.max(0, durationMs);
+}
+
 // Placeholder for future auth token retrieval
 function getAccessToken(): string | null {
   try {
@@ -108,7 +114,7 @@ function createApiClient(): AxiosInstance {
         const url = (response?.config?.url || '').toString();
         const isAuthEndpoint = /\/api\/v1\/auth\//.test(url);
         const hdr = (response.headers as any)?.authorization ?? (response.headers as any)?.Authorization;
-        if (isAuthEndpoint && hdr && typeof hdr === 'string') {
+        if (isAuthEndpoint && hdr && typeof hdr === 'string' && Date.now() >= refreshBlockedUntil) {
           const token = hdr.toLowerCase().startsWith('bearer ') ? hdr.slice(7) : hdr;
           setAccessToken(token);
         }
@@ -137,6 +143,10 @@ function createApiClient(): AxiosInstance {
 
       // 자동 재시도: 401 && 아직 미시도 && refresh 가능 상태
       if (error.response?.status === 401 && !originalRequest?._retry) {
+        // 로그아웃 직후 일정 시간 동안은 refresh를 막아 로그인 복구를 방지
+        if (Date.now() < refreshBlockedUntil) {
+          return Promise.reject(error);
+        }
         originalRequest._retry = true;
         return triggerRefresh()
           .then(() => {

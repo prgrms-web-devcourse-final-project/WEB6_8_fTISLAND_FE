@@ -16,6 +16,7 @@ export const Route = createRootRoute({
     const parsed = raw ? JSON.parse(raw) : null;
     const state = parsed?.state ?? parsed;
     const token = state?.accessToken as string | undefined;
+    const refresh = state?.refreshToken as string | undefined;
     const profile = state?.currentActiveProfileType as 'CUSTOMER' | 'SELLER' | 'RIDER' | undefined;
     const available = state?.availableProfiles as any[] | undefined | null;
 
@@ -38,7 +39,7 @@ export const Route = createRootRoute({
     }
 
     // 로그인된 사용자가 로그인/회원가입 페이지 접근 시: 프로필이 확정된 경우에만 대시보드로 리다이렉트
-    if (token && profile && publicPaths.has(path) && (path === '/login' || path === '/signup')) {
+    if (token && refresh && profile && publicPaths.has(path) && (path === '/login' || path === '/signup')) {
       // 로그인했지만 사용 가능한 프로필이 없으면 온보딩으로
       if (!available || !Array.isArray(available) || available.length === 0) {
         throw redirect({ to: '/make-profile' });
